@@ -1,2 +1,2 @@
 # AlphaMonkey
-Just test github repository, nothing to do now.
+Hello world, I'm Alpha Monkey System.
