@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import MySQLdb
 
 OP_CREATE_TABLE = 1
