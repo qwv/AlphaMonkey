@@ -7,9 +7,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'mysql',
         'CONFIG': {
-            'NAME': 'monkey',
+            'NAME': 'alpha_monkey',
             'USER': 'root',
-            'PASSWORD': 'blackhand',
+            'PASSWORD': 'bearing',
             'HOST': '127.0.0.1',
             'PORT': 3306,
         },
@@ -17,9 +17,9 @@ DATABASES = {
     'test': {
         'ENGINE': 'mysql',
         'CONFIG': {
-            'NAME': 'monkey_test',
+            'NAME': 'alpha_monkey_test',
             'USER': 'root',
-            'PASSWORD': 'blackhand',
+            'PASSWORD': 'bearing',
             'HOST': '127.0.0.1',
             'PORT': 3306,
         },

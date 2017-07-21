@@ -6,7 +6,7 @@ sys.path.append("..")
 
 from middleware.db import DatabaseProxy
 from middleware.settings import *
-
+from middleware.log import *
 
 class DBTests(unittest.TestCase):
     """
@@ -91,7 +91,32 @@ class LogTests(unittest.TestCase):
     Test Log System.
     """
     def test_log(self):
-        pass
+        LogManager.set_log_handle(STREAM)
+	logger = LogManager.get_logger("TestStreamLog")
+        self.assertNotEqual(logger, None)
+	logger.debug("debug message")  
+	logger.info("info message")  
+	logger.warning("warn message")  
+	logger.error("error message")  
+	logger.critical("critical message")  
+
+        LogManager.set_log_handle(SYSLOG)
+	logger = LogManager.get_logger("TestSysLog")
+        self.assertNotEqual(logger, None)
+	logger.debug("debug message")  
+	logger.info("info message")  
+	logger.warning("warn message")
+	logger.error("error message")  
+	logger.critical("critical message")  
+
+        LogManager.set_log_handle(FILE)
+	logger = LogManager.get_logger("TestFileLog")
+        self.assertNotEqual(logger, None)
+	logger.debug("debug message")  
+	logger.info("info message")  
+	logger.warning("warn message")  
+	logger.error("error message")  
+	logger.critical("critical message")  
 
 
 if __name__ == "__main__":

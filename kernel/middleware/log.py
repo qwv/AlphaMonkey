@@ -63,11 +63,11 @@ class LogManager(object):
         logger.log_last_except = new.instancemethod(log_compact_traceback, logger, logger.__class__) 
         logger.setLevel(LogManager.log_level)  
         # create handler
-        formatlist = ['%(asctime)s', 'MobileServer', LogManager.log_tag, '%(name)s', '%(levelname)s', '%(message)s']
+        formatlist = ['%(asctime)s', 'AlphaMonkey', LogManager.log_tag, '%(name)s', '%(levelname)s', '%(message)s']
         if LogManager.log_handle == SYSLOG:
             if platform.system() == 'Linux':
                 #debug logs use LOG_LOCAL1
-                ch = LH.SysLogHandler('/dev/log', facility=LH.SysLogHandler.LOG_LOCAL1)
+                ch = LH.SysLogHandler(address='/dev/log', facility=LH.SysLogHandler.LOG_LOCAL1)
                 LogManager.sys_logger = logger
                 formatlist = ['%(asctime)s', 'AlphaMonkey', LogManager.log_tag, '%(modulename)s', '%(levelname)s', '%(message)s']
             else:
@@ -101,30 +101,3 @@ class LogManager(object):
     @staticmethod
     def set_log_tag(log_tag):
         LogManager.log_tag = log_tag
-            
-    @staticmethod	
-    def get_sa_logger():
-        if ( 'SALogger' in LogManager.created_modules ):
-            return SALogger(logging.getLogger('SALogger'))
-        logger = logging.getLogger('SALogger')
-        logger.setLevel(logging.INFO)  
-        ch = LH.SysLogHandler('/dev/log', facility=LH.SysLogHandler.LOG_LOCAL0)  
-        ch.setLevel(logging.INFO) 
-        formatter = logging.Formatter(LogManager.sa_log_tag + ": %(message)s")  
-        ch.setFormatter(formatter)   
-        logger.addHandler(ch)
-        LogManager.created_modules.add('SALogger')
-        return SALogger(logger)
-    
-    @staticmethod
-    def set_sa_log_tag(tag):
-        LogManager.sa_log_tag = tag
-		
-class SALogger(object):
-    def __init__(self, logger):
-        self.logger = logger
-            
-    def log(self, operation, info_dict):
-        log_time = time.strftime("%Y-%m-%d %H:%M:%S")
-        json_str = json.dumps(info_dict, ensure_ascii=False)
-        self.logger.info('[%s][%s],%s'%(log_time, operation, json_str))

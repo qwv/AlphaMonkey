@@ -5,7 +5,7 @@ import functools
 import httplib
 import cStringIO
 
-# from mobilelog.LogManager import LogManager
+from middleware.log import LogManager
 
 class HttpRequest(object):
     """
