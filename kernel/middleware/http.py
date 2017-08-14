@@ -41,7 +41,7 @@ class HttpReply(object):
     def __str__(self):
         return str(self.header) 
 
-# _logger = LogManager.get_logger("mobilerpc.SimpleHttpClient2")
+_logger = LogManager.get_logger("http_client")
 
 
 class AsyncHTTPClient(object):
@@ -50,7 +50,7 @@ class AsyncHTTPClient(object):
         max_buffer_size is the number of bytes that can be read by IOStream. It
         defaults to 10kB.
         """
-        super(SimpleAsyncHTTPClient2, self).__init__()
+        super(AsyncHTTPClient, self).__init__()
         self.max_clients = max_clients
         self.active = {}
         self.max_buffer_size = max_buffer_size
@@ -148,6 +148,6 @@ if __name__ == '__main__':
         else:
             print "failed to fetch the request", str(request)
 
-    client = SimpleAsyncHTTPClient2(10)
+    client = AsyncHTTPClient(10)
     request = HttpRequest("wordpress.org",  "GET", "/plugins/about/readme.txt")
     client.http_request(request, 10, callback)

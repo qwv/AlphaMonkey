@@ -1,12 +1,16 @@
 import unittest
 import sys
 import datetime
+import random
+import time
 
 sys.path.append("..")
 
 from middleware.db import DatabaseProxy
 from middleware.settings import *
 from middleware.log import *
+# from middleware.http import *
+from middleware.thread import *
 
 class DBTests(unittest.TestCase):
     """
@@ -14,6 +18,8 @@ class DBTests(unittest.TestCase):
     """
 
     def setUp(self):
+        print "-- Test db --"
+
         self.db = DatabaseProxy(DATABASES['test']['ENGINE'], DATABASES['test']['CONFIG'])
         self.assertTrue(self.db.db_client.connected, "Connect db test failure.")
         self.table = 'test'
@@ -64,33 +70,15 @@ class DBTests(unittest.TestCase):
         self.test_table_drop()
 
 
-class ThreadTests(unittest.TestCase):
-    """
-    Test Thread Pool.
-    """
-    def test_new_thread(self):
-        pass
-
-
-class HttpTests(unittest.TestCase):
-    """
-    Test Http Request.
-    """
-    def test_async_http_request(self):
-        pass
-
-    def test_sync_http_request(self):
-        pass
-
-    def test_parse(self):
-        pass
-
-
 class LogTests(unittest.TestCase):
     """
     Test Log System.
     """
-    def test_log(self):
+
+    def setUp(self):
+        print "-- Test log --"
+
+    def test_stream_log(self):
         LogManager.set_log_handle(STREAM)
 	logger = LogManager.get_logger("TestStreamLog")
         self.assertNotEqual(logger, None)
@@ -100,6 +88,7 @@ class LogTests(unittest.TestCase):
 	logger.error("error message")  
 	logger.critical("critical message")  
 
+    def test_system_log(self):
         LogManager.set_log_handle(SYSLOG)
 	logger = LogManager.get_logger("TestSysLog")
         self.assertNotEqual(logger, None)
@@ -109,6 +98,7 @@ class LogTests(unittest.TestCase):
 	logger.error("error message")  
 	logger.critical("critical message")  
 
+    def test_file_log(self):
         LogManager.set_log_handle(FILE)
 	logger = LogManager.get_logger("TestFileLog")
         self.assertNotEqual(logger, None)
@@ -117,6 +107,35 @@ class LogTests(unittest.TestCase):
 	logger.warning("warn message")  
 	logger.error("error message")  
 	logger.critical("critical message")  
+
+
+class HttpTests(unittest.TestCase):
+    """
+    Test Http Request.
+    """
+
+    # def callback(request, reply):
+    #     print "entering http callback"
+    #     if reply != None:
+    #         print request, reply, reply.body
+    #     else:
+    #         print "failed to fetch the request", str(request)
+    #
+    # def test_async_http_request(self):
+    #     client = AsyncHTTPClient(10)
+    #     request = HttpRequest("wordpress.org",  "GET", "/plugins/about/readme.txt")
+    #     client.http_request(request, 10, callback)
+
+    
+class ThreadTests(unittest.TestCase):
+    """
+    Test Thread Pool.
+    """
+
+    def setUp(self):
+        print "-- Test thread --"
+
+
 
 
 if __name__ == "__main__":

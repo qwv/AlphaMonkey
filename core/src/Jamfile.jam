@@ -1,0 +1,21 @@
+
+local arch ;
+local name = core ;
+if $(OSPLAT) = X86_64
+{
+    arch = 64 ;
+    name = $(name)_64 ;
+}
+
+project core
+        : requirements
+		<cxxflags>"-std=c++11"
+		<threading>multi
+	: build-dir ../bin
+	;
+
+python-extension $(name) : [ glob *.cpp http/*.cpp ]
+    :
+    <define>OSPLAT=$(arch)
+    ;
+
