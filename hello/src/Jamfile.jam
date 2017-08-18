@@ -1,0 +1,21 @@
+
+local arch ;
+local name = test ;
+if $(OSPLAT) = X86_64
+{
+    arch = 64 ;
+    name = $(name)_64 ;
+}
+
+project test_project
+        : requirements
+		<cxxflags>"-std=c++11"
+        <library>..//boost_python/<link>static
+		<threading>multi
+	: build-dir ../bin
+	;
+
+python-extension $(name) : [ glob *.cpp ]
+    :
+    <define>OSPLAT=$(arch)
+    ;
