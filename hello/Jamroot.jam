@@ -1,8 +1,0 @@
-
-import os ;
-import modules ;
-using python ;
-
-lib boost_python : : <file>./libs/libboost_python.a ;
-
-build-project src ;
