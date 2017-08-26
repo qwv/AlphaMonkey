@@ -6,17 +6,22 @@
 
 #include "async_client.hpp"
 
+#include <glog/logging.h>
+
 namespace core
 {
 
 async_client::async_client(boost::asio::io_service& io_service,
                            const std::string& server, const std::string& path,
                            const std::string& method, const std::string& content,
-                           int timeout, bool keep_alive)
+                           int timeout, bool keep_alive,
+                           http_callback callback)
 : resolver_(io_service),
   socket_(io_service),
-  timer_(io_service, boost::posix_time::seconds(timeout))
+  timer_(io_service, boost::posix_time::seconds(timeout)),
+  callback_(callback)
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     // Form the request. We specify the "Connection: close" header so that the
     // server will close the socket after transmitting the response. This will
     // allow us to treat all data up until the EOF as the content.
@@ -52,7 +57,7 @@ void async_client::handle_resolve(const boost::system::error_code& err,
     }
     else
     {
-        std::cout << "Error: " << err.message() << "\n";
+        DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err.message();
     }
 }
 
@@ -67,7 +72,7 @@ void async_client::handle_connect(const boost::system::error_code& err)
     }
     else
     {
-        std::cout << "Error: " << err.message() << "\n";
+        DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err.message();
     }
 }
 
@@ -84,7 +89,7 @@ void async_client::handle_write_request(const boost::system::error_code& err)
     }
     else
     {
-        std::cout << "Error: " << err.message() << "\n";
+        DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err.message();
     }
 }
 
@@ -102,13 +107,12 @@ void async_client::handle_read_status_line(const boost::system::error_code& err)
         std::getline(response_stream, status_message);
         if (!response_stream || http_version.substr(0, 5) != "HTTP/")
         {
-            std::cout << "Invalid response\n";
+            DLOG(INFO) << __FUNCTION__ << " Invalid response " << this;
             return;
         }
         if (status_code != 200)
         {
-            std::cout << "Response returned with status code ";
-            std::cout << status_code << "\n";
+            DLOG(INFO) << __FUNCTION__ << this << " Response returned with status code " << status_code;
             return;
         }
 
@@ -119,7 +123,7 @@ void async_client::handle_read_status_line(const boost::system::error_code& err)
     }
     else
     {
-        std::cout << "Error: " << err << "\n";
+        DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err.message();
     }
 }
 
@@ -146,7 +150,7 @@ void async_client::handle_read_headers(const boost::system::error_code& err)
     }
     else
     {
-        std::cout << "Error: " << err << "\n";
+        DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err.message();
     }
 }
 
@@ -155,7 +159,7 @@ void async_client::handle_read_content(const boost::system::error_code& err)
     if (!err)
     {
         // Write all of the data that has been read so far.
-        std::cout << &response_;
+        LOG(INFO) << __FUNCTION__ << " " << this << &response_;
 
         // Continue reading remaining data until EOF.
         boost::asio::async_read(socket_, response_,
@@ -165,7 +169,11 @@ void async_client::handle_read_content(const boost::system::error_code& err)
     }
     else if (err != boost::asio::error::eof)
     {
-        std::cout << "Error: " << err << "\n";
+        DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err.message();
+    }
+    else // EOF
+    {
+        callback_(err.message(), "", "");
     }
 }
 
@@ -176,7 +184,7 @@ void async_client::close_connection(const boost::system::error_code& err)
     }
     else
     {
-        std::cout << "Error: " << err.message() << "\n";
+        DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err.message();
     }
 }
 

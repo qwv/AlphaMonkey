@@ -33,7 +33,10 @@ void http_client_proxy::__init__(const std::string& host,
 
     // port headers usessl not support yet
     async_client c(io_service, this->host, this->path, this->method, this->content,
-                   this->timeout, this->keep_alive);
+                   this->timeout, this->keep_alive,
+                   std::bind(&http_client_proxy::callback, this, std::placeholders::_1,
+                                                                 std::placeholders::_2,
+                                                                 std::placeholders::_3));
 }
 
 void http_client_proxy::start()

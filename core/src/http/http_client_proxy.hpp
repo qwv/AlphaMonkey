@@ -14,6 +14,7 @@
 namespace core
 {
 
+
 class http_client_proxy
 {
 public:
@@ -30,6 +31,8 @@ public:
                   bool keep_alive);
 
     void start();
+
+    virtual void callback(const std::string& err, const std::string& headers, const std::string& content) = 0;
 
 private:
     std::string host;
