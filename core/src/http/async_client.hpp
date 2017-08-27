@@ -6,19 +6,17 @@
 
 #pragma once
 
-#include <iostream>
-#include <istream>
-#include <ostream>
 #include <string>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
 
 using boost::asio::ip::tcp;
 
 namespace core
 {
 
-typedef std::function<void(const std::string&, const std::string&, const std::string&)> http_callback;
+typedef boost::function<void(const std::string&, const std::string&, const std::string&)> http_callback;
 
 class async_client
 {
@@ -46,6 +44,9 @@ private:
     boost::asio::streambuf response_;
     boost::asio::deadline_timer timer_;
 
+    unsigned int status_code;
+    std::stringstream headers;
+    std::stringstream content;
     http_callback callback_;
 };
 

@@ -7,20 +7,23 @@
 
 #include <string>
 #include <boost/python.hpp>
-#include "http/async_client.hpp"
+#include "http/http_client_proxy.hpp"
 
-void http_async_client()
-{
-
-}
-
-#if OSPLAT == 64
-BOOST_PYTHON_MODULE(core_64)
-#else
 BOOST_PYTHON_MODULE(core)
-#endif
 {
-	//boost::python::def("http_async_client", http_async_client);
-
+    boost::python::class_<core::http_client_proxy, 
+        boost::shared_ptr<core::http_client_proxy_wrapper>,
+        boost::noncopyable>("http_client_proxy", 
+            boost::python::init<const std::string&,
+                const std::string&,
+                const std::string&,
+                const std::string&,
+                const std::string&,
+                const std::string&,
+                int,
+                bool,
+                bool>())
+        .def("start", &core::http_client_proxy::start)
+    ;
 }
 

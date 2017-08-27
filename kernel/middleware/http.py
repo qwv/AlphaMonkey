@@ -4,6 +4,7 @@ import collections
 import functools
 import httplib
 import cStringIO
+import core
 
 from middleware.log import LogManager
 
@@ -74,7 +75,7 @@ class AsyncHTTPClient(object):
             callback(request, reply)
 
 
-class HTTPClient(asiocore.http_client_proxy):
+class HTTPClient(core.http_client_proxy):
     def __init__(self, host, port, method, path, headers, timeout, usessl, content, keep_alive, handler):
         super(HTTPClient, self).__init__(host, port, method, path, headers, timeout, usessl, content, keep_alive)
         self.handler = handler
@@ -83,7 +84,7 @@ class HTTPClient(asiocore.http_client_proxy):
         if not callable(self.handler):
             return
 
-        if err == asiocore.http_error_types.http_no_error:
+        if err == "":
             # yes, for compatible we have to hack here, just for an HTTPMessage's instance
             msg = httplib.HTTPMessage(cStringIO.StringIO())
             msg.status = ''

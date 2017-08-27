@@ -7,14 +7,17 @@ if $(OSPLAT) = X86_64
     name = $(name)_64 ;
 }
 
-project core
+project cppcore
         : requirements
 		<cxxflags>"-std=c++11"
+        <library>..//boost_system/<link>static
+        <library>..//boost_python/<link>static
+        <library>..//glog/<link>static
 		<threading>multi
 	: build-dir ../bin
 	;
 
-python-extension $(name) : [ glob *.cpp http/*.cpp ]
+python-extension $(name) : [ glob *.cpp common/*.cpp http/*.cpp ]
     :
     <define>OSPLAT=$(arch)
     ;

@@ -9,7 +9,7 @@ sys.path.append("..")
 from middleware.db import DatabaseProxy
 from middleware.settings import *
 from middleware.log import *
-# from middleware.http import *
+from middleware.http import *
 from middleware.thread import *
 
 class DBTests(unittest.TestCase):
@@ -114,17 +114,17 @@ class HttpTests(unittest.TestCase):
     Test Http Request.
     """
 
-    # def callback(request, reply):
-    #     print "entering http callback"
-    #     if reply != None:
-    #         print request, reply, reply.body
-    #     else:
-    #         print "failed to fetch the request", str(request)
-    #
-    # def test_async_http_request(self):
-    #     client = AsyncHTTPClient(10)
-    #     request = HttpRequest("wordpress.org",  "GET", "/plugins/about/readme.txt")
-    #     client.http_request(request, 10, callback)
+    def callback(request, reply):
+        print "entering http callback"
+        if reply != None:
+            print request, reply, reply.body
+        else:
+            print "failed to fetch the request", str(request)
+
+    def test_async_http_request(self):
+        client = AsyncHTTPClient(10)
+        request = HttpRequest("111.13.101.208",  "GET", "/")
+        client.http_request(request, 10, callback)
 
     
 class ThreadTests(unittest.TestCase):

@@ -30,7 +30,7 @@ async_client::async_client(boost::asio::io_service& io_service,
     request_stream << "Host: " << server << "\r\n";
     request_stream << "Accept: */*\r\n";
     request_stream << "Connection: " << (keep_alive ? "keep_alive" : "close") << "\r\n\r\n";
-    request_stream << content << "\r\n";
+    //request_stream << content << "\r\n";
 
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.
@@ -101,18 +101,21 @@ void async_client::handle_read_status_line(const boost::system::error_code& err)
         std::istream response_stream(&response_);
         std::string http_version;
         response_stream >> http_version;
-        unsigned int status_code;
         response_stream >> status_code;
         std::string status_message;
         std::getline(response_stream, status_message);
         if (!response_stream || http_version.substr(0, 5) != "HTTP/")
         {
             DLOG(INFO) << __FUNCTION__ << " Invalid response " << this;
+            callback_("invalid response", "", "");
             return;
         }
         if (status_code != 200)
         {
-            DLOG(INFO) << __FUNCTION__ << this << " Response returned with status code " << status_code;
+            DLOG(INFO) << __FUNCTION__ << this << " Response returned with status code " << status_code << " " << status_message;
+            std::stringstream error_string;
+            error_string << "status code " << status_code << " " << status_message;
+            callback_(error_string.str(), "", "");
             return;
         }
 
@@ -135,12 +138,12 @@ void async_client::handle_read_headers(const boost::system::error_code& err)
         std::istream response_stream(&response_);
         std::string header;
         while (std::getline(response_stream, header) && header != "\r")
-            std::cout << header << "\n";
-        std::cout << "\n";
+            headers << header << "\n";
+        headers << "\n";
 
         // Write whatever content we already have to output.
         if (response_.size() > 0)
-        std::cout << &response_;
+            content << &response_;
 
         // Start reading remaining data until EOF.
         boost::asio::async_read(socket_, response_,
@@ -160,6 +163,7 @@ void async_client::handle_read_content(const boost::system::error_code& err)
     {
         // Write all of the data that has been read so far.
         LOG(INFO) << __FUNCTION__ << " " << this << &response_;
+        content << &response_;
 
         // Continue reading remaining data until EOF.
         boost::asio::async_read(socket_, response_,
@@ -173,7 +177,7 @@ void async_client::handle_read_content(const boost::system::error_code& err)
     }
     else // EOF
     {
-        callback_(err.message(), "", "");
+        callback_("", headers.str(), content.str());
     }
 }
 
@@ -181,6 +185,8 @@ void async_client::close_connection(const boost::system::error_code& err)
 {
     if (!err)
     {
+        socket_.close();
+        callback_("request time out", "", "");
     }
     else
     {
