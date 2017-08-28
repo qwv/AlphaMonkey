@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import collections
 import functools
 import httplib
 import cStringIO
+
+from log import LogManager
+
+sys.path.append("../lib")
+
 import core
 
-from middleware.log import LogManager
 
 class HttpRequest(object):
     """
@@ -65,7 +70,7 @@ class AsyncHTTPClient(object):
     def process_request(self, request, timeout, callback):
         key = object()
         self.active[key] =  callback
-        wrapper_callback = functools.partial(self._callback, key, request)
+        wrapper_callback = functools.partial(self.callback, key, request)
         HTTPConnection(request, timeout, wrapper_callback, self.max_buffer_size)
 
     def callback(self, key, request, err, reply):
@@ -76,8 +81,8 @@ class AsyncHTTPClient(object):
 
 
 class HTTPClient(core.http_client_proxy):
-    def __init__(self, host, port, method, path, headers, timeout, usessl, content, keep_alive, handler):
-        super(HTTPClient, self).__init__(host, port, method, path, headers, timeout, usessl, content, keep_alive)
+    def __init__(self, host, port, method, path, headers, content, timeout, usessl, keep_alive, handler):
+        super(HTTPClient, self).__init__(host, port, method, path, headers, content, timeout, usessl, keep_alive)
         self.handler = handler
     
     def callback(self, err, headers, content):
@@ -110,7 +115,7 @@ class HTTPConnection(object):
         self.set_hostport(request.host, request.port)
         self.putheaders(request.headers)
         body = request.body if request.body is not None else ""
-        self.http_client = HTTPClient(self.host, self.port, request.method, request.url, self.headers, timeout, request.usessl, body, False, self.callback)
+        self.http_client = HTTPClient(self.host, self.port, request.method, request.url, self.headers, body, timeout, request.usessl, False, self.callback)
         self.http_client.start()
 
     def putheaders(self, headers):
@@ -140,15 +145,3 @@ class HTTPConnection(object):
         self.host = host
         self.port = port
 
-
-if __name__ == '__main__':	
-    def callback(request, reply):
-        print "entering http callback"
-        if reply != None:
-            print request, reply, reply.body
-        else:
-            print "failed to fetch the request", str(request)
-
-    client = AsyncHTTPClient(10)
-    request = HttpRequest("wordpress.org",  "GET", "/plugins/about/readme.txt")
-    client.http_request(request, 10, callback)

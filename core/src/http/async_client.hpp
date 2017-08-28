@@ -7,9 +7,12 @@
 #pragma once
 
 #include <string>
+#include <istream>
+#include <ostream>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 using boost::asio::ip::tcp;
 
@@ -18,15 +21,15 @@ namespace core
 
 typedef boost::function<void(const std::string&, const std::string&, const std::string&)> http_callback;
 
-class async_client
+class async_client : public boost::enable_shared_from_this<async_client>
 {
 
 public:
-    async_client(boost::asio::io_service& io_service,
-                 const std::string& server, const std::string& path,
-                 const std::string& method, const std::string& content,
-                 int timeout, bool keep_alive,
-                 http_callback callback);
+    async_client(boost::asio::io_service& io_service, int timeout, http_callback callback);
+
+    void start(const std::string& server, const std::string& path,
+               const std::string& method, const std::string& content,
+               bool keep_alive);
 
 private:
     void handle_resolve(const boost::system::error_code& err,
@@ -49,6 +52,8 @@ private:
     std::stringstream content;
     http_callback callback_;
 };
+
+typedef boost::shared_ptr<async_client> async_client_ptr;
 
 } // namespace core
 

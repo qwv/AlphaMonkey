@@ -12,7 +12,7 @@ namespace core
 {
 
 http_client_proxy::http_client_proxy(const std::string& host,
-                                     const std::string& port,
+                                     int port,
                                      const std::string& method,
                                      const std::string& path,
                                      const std::string& headers,
@@ -22,17 +22,17 @@ http_client_proxy::http_client_proxy(const std::string& host,
                                      bool keep_alive)
 {
     // port headers usessl not support yet
-    async_client c(io_service, host, path, method, content,
-                   timeout, keep_alive,
-                   boost::bind(&http_client_proxy::callback, this, 
-                               boost::placeholders::_1,
-                               boost::placeholders::_2,
-                               boost::placeholders::_3));
+    new_async_client = boost::make_shared<async_client>(io_service, timeout,
+                                                        boost::bind(&http_client_proxy::callback, this, 
+                                                                    boost::placeholders::_1,
+                                                                    boost::placeholders::_2,
+                                                                    boost::placeholders::_3));
+    new_async_client->start(host, path, method, content, keep_alive);
 }
 
 http_client_proxy::~http_client_proxy()
 {
-
+    new_async_client.reset();
 }
 
 void http_client_proxy::start()
@@ -49,7 +49,7 @@ void http_client_proxy::callback(const std::string& err,
 
 http_client_proxy_wrapper::http_client_proxy_wrapper(PyObject *self,
                                                      const std::string& host,
-                                                     const std::string& port,
+                                                     int port,
                                                      const std::string& method,
                                                      const std::string& path,
                                                      const std::string& headers,
@@ -73,7 +73,6 @@ void http_client_proxy_wrapper::callback(const std::string& err,
                                          const std::string& headers, 
                                          const std::string& content)
 {
-	DLOG(INFO) << __FUNCTION__ << " " << this;
     BEGIN_CALL_SCRIPT
         if(self_) boost::python::call_method<void>(self_, "callback", err, headers, content);
     END_CALL_SCRIPT

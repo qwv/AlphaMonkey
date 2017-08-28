@@ -10,6 +10,7 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/python.hpp>
+#include <boost/make_shared.hpp>
 
 #include "async_client.hpp"
 #include "../common/python_helper.hpp"
@@ -21,7 +22,7 @@ class http_client_proxy
 {
 public:
     http_client_proxy(const std::string& host,
-                      const std::string& port,
+                      int port,
                       const std::string& method,
                       const std::string& path,
                       const std::string& headers,
@@ -39,6 +40,7 @@ public:
                           const std::string& content);
 
 private:
+    async_client_ptr new_async_client;
     boost::asio::io_service io_service;
 };
 
@@ -47,7 +49,7 @@ class http_client_proxy_wrapper : public http_client_proxy
 public:
     http_client_proxy_wrapper(PyObject *self,
                               const std::string& host,
-                              const std::string& port,
+                              int port,
                               const std::string& method,
                               const std::string& path,
                               const std::string& headers,

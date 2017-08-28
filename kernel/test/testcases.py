@@ -114,17 +114,22 @@ class HttpTests(unittest.TestCase):
     Test Http Request.
     """
 
-    def callback(request, reply):
-        print "entering http callback"
+    def setUp(self):
+        print "-- Test http --"
+
+    def callback(self, request, reply):
+        print "Entering http callback"
         if reply != None:
-            print request, reply, reply.body
+            print request, reply
+            print reply.body
         else:
             print "failed to fetch the request", str(request)
 
     def test_async_http_request(self):
+        print "Entering http request"
         client = AsyncHTTPClient(10)
-        request = HttpRequest("111.13.101.208",  "GET", "/")
-        client.http_request(request, 10, callback)
+        request = HttpRequest("111.13.101.208", "GET", "/")
+        client.http_request(request, 10, self.callback)
 
     
 class ThreadTests(unittest.TestCase):
