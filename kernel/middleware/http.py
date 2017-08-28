@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+ http.py
+ 
+ Copyright (C) 2017-2031  YuHuan Chow <chowyuhuan@gmail.com>
+ 
+"""
 
 import sys
 import collections

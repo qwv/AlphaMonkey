@@ -1,5 +1,10 @@
-
 # -*- coding: utf-8 -*-
+"""
+ log.py
+ 
+ Copyright (C) 2017-2031  YuHuan Chow <chowyuhuan@gmail.com>
+ 
+"""
 
 import sys, new
 import logging 
