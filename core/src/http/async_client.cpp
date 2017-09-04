@@ -11,13 +11,15 @@
 namespace core
 {
 
-async_client::async_client(boost::asio::io_service& io_service, int timeout, http_callback callback)
+async_client::async_client(boost::asio::io_service& io_service, const int timeout, const http_callback& callback)
 : resolver_(io_service),
   socket_(io_service),
-  timer_(io_service, boost::posix_time::seconds(timeout)),
+  deadline_(io_service),
   callback_(callback)
 {
     DLOG(INFO) << __FUNCTION__ << " " << this;
+    // Set a deadline for the connect operation.      
+    deadline_.expires_from_now(boost::posix_time::seconds(timeout));
 }
 
 void async_client::start(const std::string& server, const std::string& path,
@@ -43,6 +45,14 @@ void async_client::start(const std::string& server, const std::string& path,
                                         boost::asio::placeholders::iterator));
 }
 
+// This function terminates all the actors to shut down the connection.
+void async_client::stop()
+{
+    boost::system::error_code err;
+    socket_.close(err);
+    deadline_.cancel();
+}
+
 void async_client::handle_resolve(const boost::system::error_code& err,
                                   tcp::resolver::iterator endpoint_iterator)
 {
@@ -53,19 +63,27 @@ void async_client::handle_resolve(const boost::system::error_code& err,
         boost::asio::async_connect(socket_, endpoint_iterator,
                                    boost::bind(&async_client::handle_connect, shared_from_this(),
                                    boost::asio::placeholders::error));
-        // Set time out callback.
-        timer_.async_wait(boost::bind(&async_client::close_connection, shared_from_this(),
-                                      boost::asio::placeholders::error));
+
+        // Start the deadline actor. You will note that we're not setting any
+        // particular deadline here. Instead, the connect and input actors will
+        // update the deadline prior to each asynchronous operation.
+        deadline_.async_wait(boost::bind(&async_client::check_deadline, shared_from_this()));
     }
     else
     {
         DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err << " " << err.message();
+        stop();
     }
 }
 
 void async_client::handle_connect(const boost::system::error_code& err)
 {
-    if (!err)
+    if (!socket_.is_open())
+    {
+        stop();
+        callback_("request time out", "", "");
+    }
+    else if (!err)
     {
         // The connection was successful. Send the request.
         boost::asio::async_write(socket_, request_,
@@ -75,13 +93,14 @@ void async_client::handle_connect(const boost::system::error_code& err)
     else
     {
         DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err << " " << err.message();
+        stop();
     }
 }
 
 void async_client::handle_write_request(const boost::system::error_code& err)
 {
-    // Recevie a reply cancel time out callback.
-    timer_.cancel();
+    // Set a deadline for the write/read operation.
+    deadline_.expires_from_now(boost::posix_time::seconds(READ_TIMEOUT));
 
     if (!err)
     {
@@ -95,6 +114,7 @@ void async_client::handle_write_request(const boost::system::error_code& err)
     else
     {
         DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err << " " << err.message();
+        stop();
     }
 }
 
@@ -132,6 +152,7 @@ void async_client::handle_read_status_line(const boost::system::error_code& err)
     else
     {
         DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err << " " << err.message();
+        stop();
     }
 }
 
@@ -159,6 +180,7 @@ void async_client::handle_read_headers(const boost::system::error_code& err)
     else
     {
         DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err << " " << err.message();
+        stop();
     }
 }
 
@@ -178,24 +200,30 @@ void async_client::handle_read_content(const boost::system::error_code& err)
     else if (err != boost::asio::error::eof)
     {
         DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err << " " << err.message();
+        stop();
     }
     else // EOF.
     {
+        stop();
         callback_("", headers.str(), content.str());
     }
 }
 
-void async_client::close_connection(const boost::system::error_code& err)
+void async_client::check_deadline()
 {
-    if (!err)
+    // The handler also be called when cancel the timer, and err is true.
+    // Check whether the deadline has passed. We compare the deadline against
+    // the current time since a new asynchronous operation may have moved the
+    // deadline before this actor had a chance to run.
+    if (deadline_.expires_at() <= boost::asio::deadline_timer::traits_type::now())
     {
+        // The deadline has passed. The socket is closed so that any outstanding
+        // asynchronous operations are cancelled.
         socket_.close();
-        callback_("request time out", "", "");
-    }
-    else
-    {
-        // The handler also be called when cancel the timer, and err is true.
-        DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err << " " << err.message();
+
+        // There is no longer an active deadline. The expiry is set to positive
+        // infinity so that the actor takes no action until a new deadline is set.
+        deadline_.expires_at(boost::posix_time::pos_infin);
     }
 }
 

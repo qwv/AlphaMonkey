@@ -49,14 +49,14 @@ class http_client_proxy_wrapper : public http_client_proxy
 public:
     http_client_proxy_wrapper(PyObject *self,
                               const std::string& host,
-                              int port,
+                              const int port,
                               const std::string& method,
                               const std::string& path,
                               const std::string& headers,
                               const std::string& content,
-                              int timeout,
-                              bool usessl,
-                              bool keep_alive);
+                              const int timeout,
+                              const bool usessl,
+                              const bool keep_alive);
 
 	~http_client_proxy_wrapper();
 

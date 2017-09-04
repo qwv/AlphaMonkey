@@ -49,14 +49,14 @@ void http_client_proxy::callback(const std::string& err,
 
 http_client_proxy_wrapper::http_client_proxy_wrapper(PyObject *self,
                                                      const std::string& host,
-                                                     int port,
+                                                     const int port,
                                                      const std::string& method,
                                                      const std::string& path,
                                                      const std::string& headers,
                                                      const std::string& content,
-                                                     int timeout,
-                                                     bool usessl,
-                                                     bool keep_alive)
+                                                     const int timeout,
+                                                     const bool usessl,
+                                                     const bool keep_alive)
 : http_client_proxy(host, port, method, path, headers, content, timeout, usessl, keep_alive),
   self_(self)
 {
