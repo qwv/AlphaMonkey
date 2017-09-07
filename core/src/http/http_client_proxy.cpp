@@ -21,12 +21,25 @@ http_client_proxy::http_client_proxy(const std::string& host,
                                      bool usessl,
                                      bool keep_alive)
 {
-    // port headers usessl not support yet
-    new_async_client = boost::make_shared<async_client>(io_service, timeout,
-                                                        boost::bind(&http_client_proxy::callback, this, 
-                                                                    boost::placeholders::_1,
-                                                                    boost::placeholders::_2,
-                                                                    boost::placeholders::_3));
+    // port headers not support yet
+    if (usessl)
+    {
+        boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
+        new_async_client = boost::make_shared<async_client>(io_service, ctx, timeout,
+                                                            boost::bind(&http_client_proxy::callback, this, 
+                                                                        boost::placeholders::_1,
+                                                                        boost::placeholders::_2,
+                                                                        boost::placeholders::_3));
+    }
+    else
+    {
+        new_async_client = boost::make_shared<async_client>(io_service, timeout,
+                                                            boost::bind(&http_client_proxy::callback, this, 
+                                                                        boost::placeholders::_1,
+                                                                        boost::placeholders::_2,
+                                                                        boost::placeholders::_3));
+    }
+
     new_async_client->start(host, path, method, content, keep_alive);
 }
 

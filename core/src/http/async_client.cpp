@@ -11,14 +11,30 @@
 namespace core
 {
 
-async_client::async_client(boost::asio::io_service& io_service, const int timeout, const http_callback& callback)
+async_client::async_client(boost::asio::io_service& io_service,
+                           const int timeout,
+                           const http_callback& callback)
 : resolver_(io_service),
-  socket_(io_service),
   deadline_(io_service),
   callback_(callback)
 {
     DLOG(INFO) << __FUNCTION__ << " " << this;
-    // Set a deadline for the connect operation.      
+    socket_ = socket_wrapper_ptr(new socket_wrapper(io_service));
+    // Set a deadline for the connect operation.
+    deadline_.expires_from_now(boost::posix_time::seconds(timeout));
+}
+
+async_client::async_client(boost::asio::io_service& io_service,
+                           boost::asio::ssl::context& ctx,
+                           const int timeout,
+                           const http_callback& callback)
+: resolver_(io_service),
+  deadline_(io_service),
+  callback_(callback)
+{
+    DLOG(INFO) << __FUNCTION__ << " " << this;
+    socket_ = socket_wrapper_ptr(new socket_wrapper(io_service, ctx));
+    // Set a deadline for the connect operation.
     deadline_.expires_from_now(boost::posix_time::seconds(timeout));
 }
 
@@ -38,7 +54,7 @@ void async_client::start(const std::string& server, const std::string& path,
 
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.
-    tcp::resolver::query query(server, "http");
+    boost::asio::ip::tcp::resolver::query query(server, "http");
     resolver_.async_resolve(query,
                             boost::bind(&async_client::handle_resolve, shared_from_this(),
                                         boost::asio::placeholders::error,
@@ -49,18 +65,18 @@ void async_client::start(const std::string& server, const std::string& path,
 void async_client::stop()
 {
     boost::system::error_code err;
-    socket_.close(err);
+    socket_->lowest_layer().close(err);
     deadline_.cancel();
 }
 
 void async_client::handle_resolve(const boost::system::error_code& err,
-                                  tcp::resolver::iterator endpoint_iterator)
+                                  boost::asio::ip::tcp::resolver::iterator endpoint_iterator)
 {
     if (!err)
     {
         // Attempt a connection to each endpoint in the list until we
         // successfully establish a connection.
-        boost::asio::async_connect(socket_, endpoint_iterator,
+        boost::asio::async_connect(socket_->lowest_layer(), endpoint_iterator,
                                    boost::bind(&async_client::handle_connect, shared_from_this(),
                                    boost::asio::placeholders::error));
 
@@ -78,7 +94,7 @@ void async_client::handle_resolve(const boost::system::error_code& err,
 
 void async_client::handle_connect(const boost::system::error_code& err)
 {
-    if (!socket_.is_open())
+    if (socket_->lowest_layer().is_open())
     {
         stop();
         callback_("request time out", "", "");
@@ -86,7 +102,7 @@ void async_client::handle_connect(const boost::system::error_code& err)
     else if (!err)
     {
         // The connection was successful. Send the request.
-        boost::asio::async_write(socket_, request_,
+        boost::asio::async_write(*socket_, request_,
                                  boost::bind(&async_client::handle_write_request, shared_from_this(),
                                  boost::asio::placeholders::error));
     }
@@ -107,7 +123,7 @@ void async_client::handle_write_request(const boost::system::error_code& err)
         // Read the response status line. The response_ streambuf will
         // automatically grow to accommodate the entire line. The growth may be
         // limited by passing a maximum size to the streambuf constructor.
-        boost::asio::async_read_until(socket_, response_, "\r\n",
+        boost::asio::async_read_until(*socket_, response_, "\r\n",
                                       boost::bind(&async_client::handle_read_status_line, shared_from_this(),
                                       boost::asio::placeholders::error));
     }
@@ -125,6 +141,7 @@ void async_client::handle_read_status_line(const boost::system::error_code& err)
         // Check that response is OK.
         std::istream response_stream(&response_);
         std::string http_version;
+        unsigned int status_code;
         response_stream >> http_version;
         response_stream >> status_code;
         std::string status_message;
@@ -145,7 +162,7 @@ void async_client::handle_read_status_line(const boost::system::error_code& err)
         }
 
         // Read the response headers, which are terminated by a blank line.
-        boost::asio::async_read_until(socket_, response_, "\r\n\r\n",
+        boost::asio::async_read_until(*socket_, response_, "\r\n\r\n",
                                       boost::bind(&async_client::handle_read_headers, shared_from_this(),
                                       boost::asio::placeholders::error));
     }
@@ -164,15 +181,15 @@ void async_client::handle_read_headers(const boost::system::error_code& err)
         std::istream response_stream(&response_);
         std::string header;
         while (std::getline(response_stream, header) && header != "\r")
-            headers << header << "\n";
-        headers << "\n";
+            headers_ << header << "\n";
+        headers_ << "\n";
 
         // Write whatever content we already have to output.
         if (response_.size() > 0)
-            content << &response_;
+            content_ << &response_;
 
         // Start reading remaining data until EOF.
-        boost::asio::async_read(socket_, response_,
+        boost::asio::async_read(*socket_, response_,
                                 boost::asio::transfer_at_least(1),
                                 boost::bind(&async_client::handle_read_content, shared_from_this(),
                                 boost::asio::placeholders::error));
@@ -189,10 +206,10 @@ void async_client::handle_read_content(const boost::system::error_code& err)
     if (!err)
     {
         // Write all of the data that has been read so far.
-        content << &response_;
+        content_ << &response_;
 
         // Continue reading remaining data until EOF.
-        boost::asio::async_read(socket_, response_,
+        boost::asio::async_read(*socket_, response_,
                                 boost::asio::transfer_at_least(1),
                                 boost::bind(&async_client::handle_read_content, shared_from_this(),
                                 boost::asio::placeholders::error));
@@ -205,7 +222,7 @@ void async_client::handle_read_content(const boost::system::error_code& err)
     else // EOF.
     {
         stop();
-        callback_("", headers.str(), content.str());
+        callback_("", headers_.str(), content_.str());
     }
 }
 
@@ -219,7 +236,7 @@ void async_client::check_deadline()
     {
         // The deadline has passed. The socket is closed so that any outstanding
         // asynchronous operations are cancelled.
-        socket_.close();
+        socket_->lowest_layer().close();
 
         // There is no longer an active deadline. The expiry is set to positive
         // infinity so that the actor takes no action until a new deadline is set.

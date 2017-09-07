@@ -9,12 +9,13 @@
 #include <string>
 #include <istream>
 #include <ostream>
-#include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include <boost/function.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
-using boost::asio::ip::tcp;
+#include "socket_wrapper.hpp"
 
 namespace core
 {
@@ -25,7 +26,14 @@ class async_client : public boost::enable_shared_from_this<async_client>
 {
 
 public:
-    async_client(boost::asio::io_service& io_service, const int timeout, const http_callback& callback);
+    async_client(boost::asio::io_service& io_service,
+                 const int timeout,
+                 const http_callback& callback);
+
+    async_client(boost::asio::io_service& io_service,
+                 boost::asio::ssl::context& ctx,
+                 const int timeout,
+                 const http_callback& callback);
 
     void start(const std::string& server, const std::string& path,
                const std::string& method, const std::string& content,
@@ -35,7 +43,7 @@ public:
 
 private:
     void handle_resolve(const boost::system::error_code& err,
-                        tcp::resolver::iterator endpoint_iterator);
+                        boost::asio::ip::tcp::resolver::iterator endpoint_iterator);
     void handle_connect(const boost::system::error_code& err);
     void handle_write_request(const boost::system::error_code& err);
     void handle_read_status_line(const boost::system::error_code& err);
@@ -43,15 +51,14 @@ private:
     void handle_read_content(const boost::system::error_code& err);
     void check_deadline();
 
-    tcp::resolver resolver_;
-    tcp::socket socket_;
+    boost::asio::ip::tcp::resolver resolver_;
+    socket_wrapper_ptr socket_;
     boost::asio::streambuf request_;
     boost::asio::streambuf response_;
     boost::asio::deadline_timer deadline_;
 
-    unsigned int status_code;
-    std::stringstream headers;
-    std::stringstream content;
+    std::stringstream headers_;
+    std::stringstream content_;
     http_callback callback_;
 
     const int READ_TIMEOUT = 600;
