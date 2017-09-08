@@ -22,25 +22,26 @@ class http_client_proxy
 {
 public:
     http_client_proxy(const std::string& host,
-                      const std::string& port,
-                      const std::string& method,
-                      const std::string& path,
-                      const std::string& headers,
-                      const std::string& content,
-                      int timeout,
-                      bool usessl,
-                      bool keep_alive);
+        const std::string& port,
+        const std::string& method,
+        const std::string& path,
+        const std::string& headers,
+        const std::string& content,
+        int timeout,
+        bool usessl,
+        bool keep_alive);
     
-    ~http_client_proxy();
+    virtual ~http_client_proxy();
 
     void start();
 
     virtual void callback(const std::string& err, 
-                          const std::string& headers, 
-                          const std::string& content);
+        const std::string& headers, 
+        const std::string& content);
 
 private:
     async_client_ptr new_async_client;
+
     boost::asio::io_service io_service;
 };
 
@@ -48,25 +49,25 @@ class http_client_proxy_wrapper : public http_client_proxy
 {
 public:
     http_client_proxy_wrapper(PyObject *self,
-                              const std::string& host,
-                              const std::string& port,
-                              const std::string& method,
-                              const std::string& path,
-                              const std::string& headers,
-                              const std::string& content,
-                              const int timeout,
-                              const bool usessl,
-                              const bool keep_alive);
+        const std::string& host,
+        const std::string& port,
+        const std::string& method,
+        const std::string& path,
+        const std::string& headers,
+        const std::string& content,
+        const int timeout,
+        const bool usessl,
+        const bool keep_alive);
 
 	~http_client_proxy_wrapper();
 
 private:
-    virtual void callback(const std::string& err, 
-                          const std::string& headers, 
-                          const std::string& content);
+    void callback(const std::string& err, 
+        const std::string& headers, 
+        const std::string& content);
 
 private:
-	PyObject	*self_;
+	PyObject *self_;
 };   
 
 } // namespace core 

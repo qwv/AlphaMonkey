@@ -20,30 +20,36 @@
 namespace core
 {
 
-typedef boost::function<void(const std::string&, const std::string&, const std::string&)> http_callback;
+typedef boost::function<void(const std::string&, 
+    const std::string&, 
+    const std::string&)> http_callback;
 
 class async_client : public boost::enable_shared_from_this<async_client>
 {
 
 public:
     async_client(boost::asio::io_service& io_service,
-                 const http_callback& callback);
+        const http_callback& callback);
 
     async_client(boost::asio::io_service& io_service,
-                 boost::asio::ssl::context& ctx,
-                 const std::string& host,
-                 const http_callback& callback);
+        boost::asio::ssl::context& ctx,
+        const std::string& host,
+        const http_callback& callback);
 
-    void start(const std::string& host, const std::string& port,
-               const std::string& path, const std::string& method,
-               const std::string& headers, const std::string& content,
-               const int timeout, bool keep_alive);
+    void start(const std::string& host,
+        const std::string& port,
+        const std::string& path, 
+        const std::string& method,
+        const std::string& headers, 
+        const std::string& content,
+        const int timeout, 
+        bool keep_alive);
 
     void stop();
 
 private:
     void handle_resolve(const boost::system::error_code& err,
-                        boost::asio::ip::tcp::resolver::iterator endpoint_iterator);
+        boost::asio::ip::tcp::resolver::iterator endpoint_iterator);
     void handle_connect(const boost::system::error_code& err);
     void handle_handshake(const boost::system::error_code& err);
     void on_connect();
