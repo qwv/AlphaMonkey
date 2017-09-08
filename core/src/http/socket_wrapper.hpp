@@ -42,6 +42,11 @@ public:
 
     ~socket_wrapper() {}
 
+    ssl_socket_ptr get_ssl_socket()
+    {
+        return ssl_socket_;
+    }
+
     lowest_layer_type& lowest_layer()
     {
         return usessl_ ? ssl_socket_->lowest_layer() : socket_->lowest_layer();
@@ -83,9 +88,9 @@ public:
         return usessl_ ? ssl_socket_->async_write_some(buffers, handler) : socket_->async_write_some(buffers, handler);
     }
 
-private:
     bool usessl_;
 
+private:
     union
     {
         socket_ptr socket_;

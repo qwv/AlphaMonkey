@@ -12,7 +12,6 @@ namespace core
 {
 
 async_client::async_client(boost::asio::io_service& io_service,
-                           const int timeout,
                            const http_callback& callback)
 : resolver_(io_service),
   deadline_(io_service),
@@ -20,13 +19,11 @@ async_client::async_client(boost::asio::io_service& io_service,
 {
     DLOG(INFO) << __FUNCTION__ << " " << this;
     socket_ = socket_wrapper_ptr(new socket_wrapper(io_service));
-    // Set a deadline for the connect operation.
-    deadline_.expires_from_now(boost::posix_time::seconds(timeout));
 }
 
 async_client::async_client(boost::asio::io_service& io_service,
                            boost::asio::ssl::context& ctx,
-                           const int timeout,
+                           const std::string& host,
                            const http_callback& callback)
 : resolver_(io_service),
   deadline_(io_service),
@@ -34,31 +31,34 @@ async_client::async_client(boost::asio::io_service& io_service,
 {
     DLOG(INFO) << __FUNCTION__ << " " << this;
     socket_ = socket_wrapper_ptr(new socket_wrapper(io_service, ctx));
-    // Set a deadline for the connect operation.
-    deadline_.expires_from_now(boost::posix_time::seconds(timeout));
+    socket_->get_ssl_socket()->set_verify_mode(boost::asio::ssl::verify_none);
+    socket_->get_ssl_socket()->set_verify_callback(boost::asio::ssl::rfc2818_verification(host));
 }
 
-void async_client::start(const std::string& server, const std::string& path,
+void async_client::start(const std::string& host, const std::string& path,
                          const std::string& method, const std::string& content,
-                         bool keep_alive)
+                         const int timeout, bool keep_alive)
 {
     // Form the request. We specify the "Connection: close" header so that the
     // server will close the socket after transmitting the response. This will
     // allow us to treat all data up until the EOF as the content.
     std::ostream request_stream(&request_);
     request_stream << method << " " << path << " HTTP/1.0\r\n";
-    request_stream << "Host: " << server << "\r\n";
+    request_stream << "Host: " << host << "\r\n";
     request_stream << "Accept: */*\r\n";
     request_stream << "Connection: " << (keep_alive ? "keep_alive" : "close") << "\r\n\r\n";
     //request_stream << content << "\r\n";
 
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.
-    boost::asio::ip::tcp::resolver::query query(server, "http");
+    boost::asio::ip::tcp::resolver::query query(host, "http");
     resolver_.async_resolve(query,
                             boost::bind(&async_client::handle_resolve, shared_from_this(),
                                         boost::asio::placeholders::error,
                                         boost::asio::placeholders::iterator));
+
+    // Set a deadline for the connect operation.
+    deadline_.expires_from_now(boost::posix_time::seconds(timeout));
 }
 
 // This function terminates all the actors to shut down the connection.
@@ -94,17 +94,24 @@ void async_client::handle_resolve(const boost::system::error_code& err,
 
 void async_client::handle_connect(const boost::system::error_code& err)
 {
-    if (socket_->lowest_layer().is_open())
+    if (!socket_->lowest_layer().is_open())
     {
         stop();
         callback_("request time out", "", "");
     }
     else if (!err)
     {
-        // The connection was successful. Send the request.
-        boost::asio::async_write(*socket_, request_,
-                                 boost::bind(&async_client::handle_write_request, shared_from_this(),
-                                 boost::asio::placeholders::error));
+        if (socket_->usessl_)
+        {
+            // SSL need handshake.
+            socket_->get_ssl_socket()->async_handshake(boost::asio::ssl::stream_base::client,
+                                                       boost::bind(&async_client::handle_handshake, shared_from_this(),
+                                                       boost::asio::placeholders::error));
+        }
+        else
+        {
+            on_connect();
+        }
     }
     else
     {
@@ -113,9 +120,31 @@ void async_client::handle_connect(const boost::system::error_code& err)
     }
 }
 
+void async_client::handle_handshake(const boost::system::error_code& err)
+{
+    if (!err)
+    {
+        // Handshake successful.
+        on_connect();
+    }
+    else
+    {
+        DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err << " " << err.message();
+        stop();
+    }
+}
+
+void async_client::on_connect()
+{
+    // The connection was successful. Send the request.
+    boost::asio::async_write(*socket_, request_,
+                             boost::bind(&async_client::handle_write_request, shared_from_this(),
+                             boost::asio::placeholders::error));
+}
+
 void async_client::handle_write_request(const boost::system::error_code& err)
 {
-    // Set a deadline for the write/read operation.
+    // Set a deadline for the read operation.
     deadline_.expires_from_now(boost::posix_time::seconds(READ_TIMEOUT));
 
     if (!err)

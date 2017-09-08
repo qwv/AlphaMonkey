@@ -27,17 +27,16 @@ class async_client : public boost::enable_shared_from_this<async_client>
 
 public:
     async_client(boost::asio::io_service& io_service,
-                 const int timeout,
                  const http_callback& callback);
 
     async_client(boost::asio::io_service& io_service,
                  boost::asio::ssl::context& ctx,
-                 const int timeout,
+                 const std::string& host,
                  const http_callback& callback);
 
-    void start(const std::string& server, const std::string& path,
+    void start(const std::string& host, const std::string& path,
                const std::string& method, const std::string& content,
-               bool keep_alive);
+               const int timeout, bool keep_alive);
 
     void stop();
 
@@ -45,6 +44,8 @@ private:
     void handle_resolve(const boost::system::error_code& err,
                         boost::asio::ip::tcp::resolver::iterator endpoint_iterator);
     void handle_connect(const boost::system::error_code& err);
+    void handle_handshake(const boost::system::error_code& err);
+    void on_connect();
     void handle_write_request(const boost::system::error_code& err);
     void handle_read_status_line(const boost::system::error_code& err);
     void handle_read_headers(const boost::system::error_code& err);
