@@ -12,7 +12,7 @@ namespace core
 {
 
 http_client_proxy::http_client_proxy(const std::string& host,
-                                     int port,
+                                     const std::string& port,
                                      const std::string& method,
                                      const std::string& path,
                                      const std::string& headers,
@@ -21,7 +21,6 @@ http_client_proxy::http_client_proxy(const std::string& host,
                                      bool usessl,
                                      bool keep_alive)
 {
-    // port headers not support yet
     if (usessl)
     {
         boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
@@ -41,7 +40,7 @@ http_client_proxy::http_client_proxy(const std::string& host,
                                                                         boost::placeholders::_3));
     }
 
-    new_async_client->start(host, path, method, content, timeout, keep_alive);
+    new_async_client->start(host, port, path, method, headers, content, timeout, keep_alive);
 }
 
 http_client_proxy::~http_client_proxy()
@@ -63,7 +62,7 @@ void http_client_proxy::callback(const std::string& err,
 
 http_client_proxy_wrapper::http_client_proxy_wrapper(PyObject *self,
                                                      const std::string& host,
-                                                     const int port,
+                                                     const std::string& port,
                                                      const std::string& method,
                                                      const std::string& path,
                                                      const std::string& headers,

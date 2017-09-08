@@ -34,8 +34,9 @@ public:
                  const std::string& host,
                  const http_callback& callback);
 
-    void start(const std::string& host, const std::string& path,
-               const std::string& method, const std::string& content,
+    void start(const std::string& host, const std::string& port,
+               const std::string& path, const std::string& method,
+               const std::string& headers, const std::string& content,
                const int timeout, bool keep_alive);
 
     void stop();

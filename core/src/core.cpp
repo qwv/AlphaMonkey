@@ -15,7 +15,7 @@ BOOST_PYTHON_MODULE(core)
         boost::shared_ptr<core::http_client_proxy_wrapper>,
         boost::noncopyable>("http_client_proxy", 
             boost::python::init<const std::string&,
-                int,
+                const std::string&,
                 const std::string&,
                 const std::string&,
                 const std::string&,

@@ -35,8 +35,9 @@ async_client::async_client(boost::asio::io_service& io_service,
     socket_->get_ssl_socket()->set_verify_callback(boost::asio::ssl::rfc2818_verification(host));
 }
 
-void async_client::start(const std::string& host, const std::string& path,
-                         const std::string& method, const std::string& content,
+void async_client::start(const std::string& host, const std::string& port,
+                         const std::string& path, const std::string& method,
+                         const std::string& headers, const std::string& content,
                          const int timeout, bool keep_alive)
 {
     // Form the request. We specify the "Connection: close" header so that the
@@ -46,12 +47,23 @@ void async_client::start(const std::string& host, const std::string& path,
     request_stream << method << " " << path << " HTTP/1.0\r\n";
     request_stream << "Host: " << host << "\r\n";
     request_stream << "Accept: */*\r\n";
-    request_stream << "Connection: " << (keep_alive ? "keep_alive" : "close") << "\r\n\r\n";
-    //request_stream << content << "\r\n";
+    request_stream << "Connection: " << (keep_alive ? "keep_alive" : "close") << "\r\n";
+    if (headers.size() != 0)
+    {
+        request_stream << headers << "\r\n";
+    }
+    if (content.size() != 0)
+    {
+        request_stream << "Content-Length: " << content.size() << "\r\n";
+        // May be assign in headers.
+        //request_stream << "Content-Type: " << "application/json" << "\r\n";
+    }
+    request_stream << "\r\n";
+    request_stream << content;
 
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.
-    boost::asio::ip::tcp::resolver::query query(host, "http");
+    boost::asio::ip::tcp::resolver::query query(host, port);
     resolver_.async_resolve(query,
                             boost::bind(&async_client::handle_resolve, shared_from_this(),
                                         boost::asio::placeholders::error,

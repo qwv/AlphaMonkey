@@ -22,7 +22,7 @@ class http_client_proxy
 {
 public:
     http_client_proxy(const std::string& host,
-                      int port,
+                      const std::string& port,
                       const std::string& method,
                       const std::string& path,
                       const std::string& headers,
@@ -49,7 +49,7 @@ class http_client_proxy_wrapper : public http_client_proxy
 public:
     http_client_proxy_wrapper(PyObject *self,
                               const std::string& host,
-                              const int port,
+                              const std::string& port,
                               const std::string& method,
                               const std::string& path,
                               const std::string& headers,
