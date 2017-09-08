@@ -21,6 +21,7 @@ http_client_proxy::http_client_proxy(const std::string& host,
     bool usessl,
     bool keep_alive)
 {
+	DLOG(INFO) << __FUNCTION__ << " " << this;
     if (usessl)
     {
         boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
@@ -45,11 +46,13 @@ http_client_proxy::http_client_proxy(const std::string& host,
 
 http_client_proxy::~http_client_proxy()
 {
+	DLOG(INFO) << __FUNCTION__ << " " << this;
     new_async_client.reset();
 }
 
 void http_client_proxy::start()
 {
+	DLOG(INFO) << __FUNCTION__ << " " << this;
     io_service.run();
 }
 
@@ -73,11 +76,13 @@ http_client_proxy_wrapper::http_client_proxy_wrapper(PyObject *self,
 : http_client_proxy(host, port, method, path, headers, content, timeout, usessl, keep_alive),
   self_(self)
 {
+	DLOG(INFO) << __FUNCTION__ << " " << this;
     boost::python::incref(self_);
 }
 
 http_client_proxy_wrapper::~http_client_proxy_wrapper()
 {
+	DLOG(INFO) << __FUNCTION__ << " " << this;
     boost::python::decref(self_);
     self_ = NULL;
 }
@@ -86,6 +91,7 @@ void http_client_proxy_wrapper::callback(const std::string& err,
     const std::string& headers, 
     const std::string& content)
 {
+	DLOG(INFO) << __FUNCTION__ << " " << this;
     BEGIN_CALL_SCRIPT
         if(self_) boost::python::call_method<void>(self_, "callback", err, headers, content);
     END_CALL_SCRIPT

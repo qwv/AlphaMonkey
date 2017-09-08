@@ -31,8 +31,8 @@ async_client::async_client(boost::asio::io_service& io_service,
 {
     DLOG(INFO) << __FUNCTION__ << " " << this;
     socket_ = socket_wrapper_ptr(new socket_wrapper(io_service, ctx));
-    socket_->get_ssl_socket()->set_verify_mode(boost::asio::ssl::verify_none);
-    socket_->get_ssl_socket()->set_verify_callback(boost::asio::ssl::rfc2818_verification(host));
+    socket_->get_ssl_socket().set_verify_mode(boost::asio::ssl::verify_none);
+    socket_->get_ssl_socket().set_verify_callback(boost::asio::ssl::rfc2818_verification(host));
 }
 
 void async_client::start(const std::string& host, const std::string& port,
@@ -40,6 +40,7 @@ void async_client::start(const std::string& host, const std::string& port,
     const std::string& headers, const std::string& content,
     const int timeout, bool keep_alive)
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     // Form the request. We specify the "Connection: close" header so that the
     // server will close the socket after transmitting the response. This will
     // allow us to treat all data up until the EOF as the content.
@@ -76,6 +77,7 @@ void async_client::start(const std::string& host, const std::string& port,
 // This function terminates all the actors to shut down the connection.
 void async_client::stop()
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     boost::system::error_code err;
     socket_->lowest_layer().close(err);
     deadline_.cancel();
@@ -84,6 +86,7 @@ void async_client::stop()
 void async_client::handle_resolve(const boost::system::error_code& err,
     boost::asio::ip::tcp::resolver::iterator endpoint_iterator)
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     if (!err)
     {
         // Attempt a connection to each endpoint in the list until we
@@ -106,6 +109,7 @@ void async_client::handle_resolve(const boost::system::error_code& err,
 
 void async_client::handle_connect(const boost::system::error_code& err)
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     if (!socket_->lowest_layer().is_open())
     {
         stop();
@@ -116,7 +120,7 @@ void async_client::handle_connect(const boost::system::error_code& err)
         if (socket_->usessl_)
         {
             // SSL need handshake.
-            socket_->get_ssl_socket()->async_handshake(boost::asio::ssl::stream_base::client,
+            socket_->get_ssl_socket().async_handshake(boost::asio::ssl::stream_base::client,
                 boost::bind(&async_client::handle_handshake, shared_from_this(),
                     boost::asio::placeholders::error));
         }
@@ -134,6 +138,7 @@ void async_client::handle_connect(const boost::system::error_code& err)
 
 void async_client::handle_handshake(const boost::system::error_code& err)
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     if (!err)
     {
         // Handshake successful.
@@ -148,6 +153,7 @@ void async_client::handle_handshake(const boost::system::error_code& err)
 
 void async_client::on_connect()
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     // The connection was successful. Send the request.
     boost::asio::async_write(*socket_, request_,
         boost::bind(&async_client::handle_write_request, shared_from_this(),
@@ -156,6 +162,7 @@ void async_client::on_connect()
 
 void async_client::handle_write_request(const boost::system::error_code& err)
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     // Set a deadline for the read operation.
     deadline_.expires_from_now(boost::posix_time::seconds(READ_TIMEOUT));
 
@@ -177,6 +184,7 @@ void async_client::handle_write_request(const boost::system::error_code& err)
 
 void async_client::handle_read_status_line(const boost::system::error_code& err)
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     if (!err)
     {
         // Check that response is OK.
@@ -217,6 +225,7 @@ void async_client::handle_read_status_line(const boost::system::error_code& err)
 
 void async_client::handle_read_headers(const boost::system::error_code& err)
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     if (!err)
     {
         // Process the response headers.
@@ -232,7 +241,7 @@ void async_client::handle_read_headers(const boost::system::error_code& err)
 
         // Start reading remaining data until EOF.
         boost::asio::async_read(*socket_, response_,
-            boost::asio::transfer_at_least(1),
+            boost::asio::transfer_all(),
             boost::bind(&async_client::handle_read_content, shared_from_this(),
                 boost::asio::placeholders::error));
     }
@@ -245,6 +254,7 @@ void async_client::handle_read_headers(const boost::system::error_code& err)
 
 void async_client::handle_read_content(const boost::system::error_code& err)
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     if (!err)
     {
         // Write all of the data that has been read so far.
@@ -252,7 +262,7 @@ void async_client::handle_read_content(const boost::system::error_code& err)
 
         // Continue reading remaining data until EOF.
         boost::asio::async_read(*socket_, response_,
-            boost::asio::transfer_at_least(1),
+            boost::asio::transfer_at_least(64),
             boost::bind(&async_client::handle_read_content, shared_from_this(),
                 boost::asio::placeholders::error));
     }
@@ -270,6 +280,7 @@ void async_client::handle_read_content(const boost::system::error_code& err)
 
 void async_client::check_deadline()
 {
+    DLOG(INFO) << __FUNCTION__ << " " << this;
     // The handler also be called when cancel the timer, and err is true.
     // Check whether the deadline has passed. We compare the deadline against
     // the current time since a new asynchronous operation may have moved the

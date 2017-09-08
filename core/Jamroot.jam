@@ -6,5 +6,7 @@ using python ;
 lib boost_system : : <file>./lib/libboost_system.a ;
 lib boost_python : : <file>./lib/libboost_python.a ;
 lib glog : : <file>./lib/libglog.a ;
+lib ssl : : <file>./lib/libssl.a ;
+lib crypto : : <file>./lib/libcrypto.a ;
 
 build-project src ;

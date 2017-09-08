@@ -121,7 +121,7 @@ class HTTPConnection(object):
         self.set_hostport(request.host, request.port)
         self.putheaders(request.headers)
         body = request.body if request.body is not None else ""
-        self.http_client = HTTPClient(self.host, self.port, request.method, request.url, self.headers, body, timeout, request.usessl, False, self.callback)
+        self.http_client = HTTPClient(self.host, str(self.port), request.method, request.url, self.headers, body, timeout, request.usessl, False, self.callback)
         self.http_client.start()
 
     def putheaders(self, headers):
@@ -150,4 +150,27 @@ class HTTPConnection(object):
                 host = host[1:-1]
         self.host = host
         self.port = port
+
+if __name__ == '__main__':
+
+    def callback(request, reply):
+        print "Entering http callback"
+        if reply != None:
+            print request, reply
+            print reply.body
+        else:
+            print "failed to fetch the request", str(request)
+    
+    from sys import argv
+    script, url = argv
+    strs = url.split("://")
+    print strs
+    index = strs[1].index("/")
+    usessl = strs[0] == "https"
+    host = strs[1][0 : index]
+    path = strs[1][index:]
+    print usessl, host, path
+    client = AsyncHTTPClient(10)
+    request = HttpRequest(host, "GET", path, usessl = usessl)
+    client.http_request(request, 10, callback)
 

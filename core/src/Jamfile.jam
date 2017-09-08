@@ -13,6 +13,8 @@ project cppcore
         <library>..//boost_system/<link>static
         <library>..//boost_python/<link>static
         <library>..//glog/<link>static
+        <library>..//ssl/<link>static
+        <library>..//crypto/<link>static
 		<threading>multi
 	: build-dir ../bin
 	;

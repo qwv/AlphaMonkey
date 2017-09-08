@@ -116,6 +116,7 @@ class HttpTests(unittest.TestCase):
 
     def setUp(self):
         print "-- Test http --"
+        self.client = AsyncHTTPClient(10)
 
     def callback(self, request, reply):
         print "Entering http callback"
@@ -127,9 +128,13 @@ class HttpTests(unittest.TestCase):
 
     def test_async_http_request(self):
         print "Entering http request"
-        client = AsyncHTTPClient(10)
         request = HttpRequest("111.13.101.208", "GET", "/")
-        client.http_request(request, 10, self.callback)
+        self.client.http_request(request, 10, self.callback)
+
+    def test_async_https_request(self):
+        print "Entering https request"
+        request = HttpRequest("111.13.101.208", "GET", "/", usessl = True)
+        self.client.http_request(request, 10, self.callback)
 
     
 class ThreadTests(unittest.TestCase):
