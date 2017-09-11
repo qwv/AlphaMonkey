@@ -241,7 +241,7 @@ void async_client::handle_read_headers(const boost::system::error_code& err)
 
         // Start reading remaining data until EOF.
         boost::asio::async_read(*socket_, response_,
-            boost::asio::transfer_all(),
+            boost::asio::transfer_at_least(1), // Reading when receive any size of bytes.
             boost::bind(&async_client::handle_read_content, shared_from_this(),
                 boost::asio::placeholders::error));
     }
@@ -262,7 +262,7 @@ void async_client::handle_read_content(const boost::system::error_code& err)
 
         // Continue reading remaining data until EOF.
         boost::asio::async_read(*socket_, response_,
-            boost::asio::transfer_at_least(64),
+            boost::asio::transfer_at_least(1),
             boost::bind(&async_client::handle_read_content, shared_from_this(),
                 boost::asio::placeholders::error));
     }
@@ -270,6 +270,9 @@ void async_client::handle_read_content(const boost::system::error_code& err)
     {
         DLOG(ERROR) << __FUNCTION__ << " " << this << " Error: " << err << " " << err.message();
         stop();
+        // When ssl short read error occur, return content has been read.
+        if (err.message() == "short read")
+            callback_("", headers_.str(), content_.str());
     }
     else // EOF.
     {
