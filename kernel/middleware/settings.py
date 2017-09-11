@@ -30,5 +30,15 @@ DATABASES = {
             'HOST': '127.0.0.1',
             'PORT': 3306,
         },
+    },
+    'finance': {
+        'ENGINE': 'mysql',
+        'CONFIG': {
+            'NAME': 'finance_data',
+            'USER': 'root',
+            'PASSWORD': 'bearing',
+            'HOST': '127.0.0.1',
+            'PORT': 3306,
+        },
     }
 }
