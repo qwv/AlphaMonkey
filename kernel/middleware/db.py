@@ -8,6 +8,9 @@
 
 import MySQLdb
 
+from log import LogManager
+
+
 OP_CREATE_TABLE = 1
 OP_DROP_TABLE = 2
 OP_INSERT = 3
@@ -16,6 +19,7 @@ OP_UPDATE = 5
 OP_FIND = 6
 OP_COUNT = 7
 
+_logger = LogManager.get_logger("db_proxy")
 
 class DatabaseProxy(object):
 
@@ -26,7 +30,8 @@ class DatabaseProxy(object):
             self.db_client = MysqlDatabase(db_config)
             self.db_client.connect()
         else:
-            raise "Database engine not find."
+            _logger.error('DatabaseProxy - init: err=%s', 'Database engine not find.')
+            # raise "Database engine not find."
 
     def __exit__(self):
         self.db_client = None
@@ -159,7 +164,8 @@ class MysqlDatabase(object):
             self.cursor = self.create_cursor()
             self.connected = True
         except MySQLdb.Error as e:
-            raise e
+            _logger.error('MysqlDatabase - connect: err=%s', e)
+            # raise e
 
     def create_cursor(self):
         cursor = self.connection.cursor()
@@ -203,11 +209,16 @@ class MysqlDatabase(object):
             sql = MysqlSchema.sql_count % params
 
         else:
-            raise "Unknown database operation."
+            _logger.error('MysqlDatabase - execute: err=%s', 'Unknown database operation.')
+            # raise "Unknown database operation."
 
-        print sql
-        self.cursor.execute(sql, args)
-        return self.cursor.fetchall()
+        _logger.info('MysqlDatabase - execute: %s', sql)
+        # print sql
+        try:
+            self.cursor.execute(sql, args)
+            return self.cursor.fetchall()
+        except (MySQLdb.OperationalError, MySQLdb.ProgrammingError) as e:
+            _logger.error('MysqlDatabase - execute: err=%s', e)
 
     @classmethod
     def format_string(cls, values):

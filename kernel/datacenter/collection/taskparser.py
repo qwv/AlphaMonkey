@@ -36,7 +36,7 @@ class ParserDataUpdate(TaskParser):
 
 
 
-class ParserStopSubTask(TaskParser):
+class ParserStopBuildinTask(TaskParser):
 
     """Docstring for ParserStopSubTask. """
 
@@ -46,7 +46,7 @@ class ParserStopSubTask(TaskParser):
 
         
 
-class ParserClearSubTask(TaskParser):
+class ParserClearBuildinTask(TaskParser):
 
     """Docstring for ParserClearSubTask. """
 
