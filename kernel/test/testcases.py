@@ -31,12 +31,13 @@ class DBTests(unittest.TestCase):
                         'col6 %s' % self.db.db_client.data_types['TextField'],
                         'col7 %s' % self.db.db_client.data_types['TimeField'],
                         'col8 %s' % self.db.db_client.data_types['DateTimeField'],
-                        'col9 %s' % self.db.db_client.data_types['IPAddressField']]
+                        'col9 %s' % self.db.db_client.data_types['IPAddressField'],
+                        'col10 %s' % (self.db.db_client.data_types['CharField'] % {'max_length':20})]
         now = datetime.datetime.now()
         date_time = now.strftime('%Y-%m-%d %H:%M:%S')
         time = now.strftime('%H:%M:%S')
-        self.rows = [['0', True,  1, 2, 1.23, 'abc', time, date_time, "127.0.0.1"],
-                     ['1', False, 3, 4, 3.14, 'def', time, date_time, "127.0.0.2"]]
+        self.rows = [['0', True,  1, 2, 1.23, 'abc', time, date_time, "127.0.0.1", "abc"],
+                     ['1', False, 3, 4, 3.14, 'def', time, date_time, "127.0.0.2", "def"]]
         self.assertNotEqual(self.db.create_table(self.table, self.columns), None)
         for row in self.rows:
             self.assertNotEqual(self.db.insert(self.table, row), None)

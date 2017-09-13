@@ -31,10 +31,10 @@ DATABASES = {
             'PORT': 3306,
         },
     },
-    'finance': {
+    'american': {
         'ENGINE': 'mysql',
         'CONFIG': {
-            'NAME': 'finance_data',
+            'NAME': 'finance_american',
             'USER': 'root',
             'PASSWORD': 'bearing',
             'HOST': '127.0.0.1',
