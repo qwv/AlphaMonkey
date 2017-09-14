@@ -9,6 +9,24 @@
 import MySQLdb
 
 from log import LogManager
+from thread import ThreadPool, WorkRequest, NoResultsPending
+from timer import Timer
+from settings import DATABASES
+
+class DataBaseService(object):
+    db_services= {}
+
+    def __init__(self, db_name):
+        super(DataBaseService, self).__init__()
+        
+    @staticmethod
+    def get_service(self, db_name):
+        if (db_services.has_key(db_name)):
+            return db_services[db_name]
+        else:
+            service = DatabaseProxy(DATABASES[db_name]['ENGINE'], DATABASES[db_name]['CONFIG'])
+            db_services.add(db_name, service)
+            return service
 
 
 OP_CREATE_TABLE = 1
@@ -31,10 +49,31 @@ class DatabaseProxy(object):
             self.db_client.connect()
         else:
             _logger.error('DatabaseProxy - init: err=%s', 'Database engine not find.')
-            # raise "Database engine not find."
+            raise "Database engine not find."
+        # self.request_pool = ThreadPool(10)
+        # self.request_time = 0.01
+        # self.timer = Timer.add_repeat_timer(self.request_time, self.db_request_poll)
 
     def __exit__(self):
         self.db_client = None
+
+    # def db_request_poll(self):
+    #     try:
+    #         self.request_pool.poll()
+    #     except NoResultsPending:
+    #         pass
+    #
+    # def db_request_callback(self, request, result, op_callback):
+    #     if result:
+    #         try:
+    #             op_callback(result)
+    #         except:
+    #             _logger.warn('send callback error.')
+    #             _logger.log_last_except()
+    #
+    # def db_request(self, op, params, op_callback):
+    #     request = WorkRequest(self.db_client.execute, (op, params), callback = lambda requset, result:self.db_request_callback(request, result, op_callback))
+    #     self.request_pool.putRequest(request)
 
     def create_table(self, table, columns):
         params = {
@@ -49,13 +88,17 @@ class DatabaseProxy(object):
         }
         return self.db_client.execute(OP_DROP_TABLE, params)
 
-    def insert(self, table, values):
+    def insert(self, table, values, callback = None):
         self.db_client.format_string(values)
         params = {
             "table": table,
             "values": ", ".join(values)
         }
         return self.db_client.execute(OP_INSERT, params)
+        # if (callback == None):
+        #     return self.db_client.execute(OP_INSERT, params)
+        # else:
+        #     db_request(OP_INSERT, params, callback)
 
     def delete(self, table, condition=None):
         params = {

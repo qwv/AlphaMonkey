@@ -11,6 +11,7 @@ from middleware.settings import *
 from middleware.log import *
 from middleware.http import *
 from middleware.thread import *
+from middleware.timer import Timer
 
 class DBTests(unittest.TestCase):
     """
@@ -41,6 +42,14 @@ class DBTests(unittest.TestCase):
         self.assertNotEqual(self.db.create_table(self.table, self.columns), None)
         for row in self.rows:
             self.assertNotEqual(self.db.insert(self.table, row), None)
+
+    # def insert_callback(self, result):
+    #     print result
+    #     self.assertNotEqual(result, None)
+    #
+    # def test_table_insert(self):
+    #     row = ['2', True,  1, 2, 1.23, 'abc', time, date_time, "127.0.0.1", "abc"]
+    #     self.db.insert(self.table, row, self.insert_callback)
 
     def test_table_drop(self):
         self.assertNotEqual(self.db.drop_table(self.table), None)
@@ -145,6 +154,29 @@ class ThreadTests(unittest.TestCase):
 
     def setUp(self):
         print "-- Test thread --"
+
+
+class TimerTests(unittest.TestCase):
+    """
+    Test timer.
+    """
+
+    def setUp(self):
+        print "-- Test timer--"
+
+    def callback(self):
+        print "Timer call back."
+        Timer.stop()
+
+    def test_add_timer(self):
+        print "Start a timer for 0.1 second."
+        Timer.start()
+        Timer.add_timer(0.1, self.callback)
+
+    def test_wait(self):
+        print "Wait 1s."
+        time.sleep(1)
+
 
 
 
