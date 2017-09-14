@@ -37,98 +37,98 @@ OP_UPDATE = 5
 OP_FIND = 6
 OP_COUNT = 7
 
-_logger = LogManager.get_logger("db_proxy")
-
 class DatabaseProxy(object):
 
     def __init__(self, engine, db_config):
         super(DatabaseProxy, self).__init__()
+        self.logger = LogManager.get_logger("db." + self.__class__.__name__)
         self.engine = engine
         if self.engine == 'mysql':
             self.db_client = MysqlDatabase(db_config)
             self.db_client.connect()
+            self.logger.info('init: Database engine MySQLdb.')
         else:
-            _logger.error('DatabaseProxy - init: err=%s', 'Database engine not find.')
+            self.logger.error('init: err=%s', 'Database engine not find.')
             raise "Database engine not find."
-        # self.request_pool = ThreadPool(10)
-        # self.request_time = 0.01
-        # self.timer = Timer.add_repeat_timer(self.request_time, self.db_request_poll)
+        self.request_pool = ThreadPool(10)
+        self.request_time = 0.001
+        self.timer = Timer.add_repeat_timer(self.request_time, self.request_poll)
 
     def __exit__(self):
         self.db_client = None
 
-    # def db_request_poll(self):
-    #     try:
-    #         self.request_pool.poll()
-    #     except NoResultsPending:
-    #         pass
-    #
-    # def db_request_callback(self, request, result, op_callback):
-    #     if result:
-    #         try:
-    #             op_callback(result)
-    #         except:
-    #             _logger.warn('send callback error.')
-    #             _logger.log_last_except()
-    #
-    # def db_request(self, op, params, op_callback):
-    #     request = WorkRequest(self.db_client.execute, (op, params), callback = lambda requset, result:self.db_request_callback(request, result, op_callback))
-    #     self.request_pool.putRequest(request)
+    def request_poll(self):
+        try:
+            self.request_pool.poll()
+        except NoResultsPending:
+            pass
 
-    def create_table(self, table, columns):
+    def execute_callback(self, request, result, opcallback):
+        if result:
+            try:
+                opcallback(result[0], result[1])
+            except:
+                self.logger.warn('send callback error.')
+                self.logger.log_last_except()
+
+    def execute(self, op, params, opcallback):
+        if self.db_client.connected:
+            request = WorkRequest(self.db_client.execute, (op, params), callback = lambda requset, result:self.execute_callback(request, result, opcallback))
+            self.request_pool.putRequest(request)
+            return True 
+        else:
+            return False
+
+    def create_table(self, table, columns, callback):
         params = {
             "table": table,
             "definition": ", ".join(columns)
         }
-        return self.db_client.execute(OP_CREATE_TABLE, params)
+        return self.execute(OP_CREATE_TABLE, params, callback)
 
-    def drop_table(self, table):
+    def drop_table(self, table, callback):
         params = {
             "table": table
         }
-        return self.db_client.execute(OP_DROP_TABLE, params)
+        return self.execute(OP_DROP_TABLE, params, callback)
 
-    def insert(self, table, values, callback = None):
+    def insert(self, table, values, callback):
         self.db_client.format_string(values)
         params = {
             "table": table,
             "values": ", ".join(values)
         }
-        return self.db_client.execute(OP_INSERT, params)
-        # if (callback == None):
-        #     return self.db_client.execute(OP_INSERT, params)
-        # else:
-        #     db_request(OP_INSERT, params, callback)
+        return self.execute(OP_INSERT, params, callback)
 
-    def delete(self, table, condition=None):
+    def delete(self, table, condition, callback):
         params = {
             "table": table,
             "condition": condition and " ".join(condition) or condition,
         }
-        return self.db_client.execute(OP_DELETE, params)
+        return self.execute(OP_DELETE, params, callback)
 
-    def update(self, table, expressions, condition=None):
+    def update(self, table, expressions, condition, callback):
         params = {
             "table": table,
             "expressions": " ".join(expressions),
             "condition": condition and " ".join(condition) or condition,
         }
-        return self.db_client.execute(OP_UPDATE, params)
+        return self.execute(OP_UPDATE, params, callback)
 
-    def find(self, table, columns, condition):
+    def find(self, table, columns, condition, callback):
         params = {
             "columns": ", ".join(columns),
             "table": table,
             "condition": " ".join(condition),
         }
-        return self.db_client.execute(OP_FIND, params)
+        return self.execute(OP_FIND, params, callback)
 
-    def count(self, table, column="*"):
+    def count(self, table, column, callback):
         params = {
             "column": " ".join(column),
             "table": table,
         }
-        return self.db_client.execute(OP_COUNT, params)
+        return self.execute(OP_COUNT, params, callback)
 
 
 class MysqlDatabase(object):
@@ -180,6 +180,7 @@ class MysqlDatabase(object):
 
     def __init__(self, db_config):
         super(MysqlDatabase, self).__init__()
+        self.logger = LogManager.get_logger("db." + self.__class__.__name__)
         self.db_config = db_config
         self.host = self.db_config["HOST"]
         self.port = self.db_config["PORT"]
@@ -207,7 +208,7 @@ class MysqlDatabase(object):
             self.cursor = self.create_cursor()
             self.connected = True
         except MySQLdb.Error as e:
-            _logger.error('MysqlDatabase - connect: err=%s', e)
+            self.logger.log_last_except()
             # raise e
 
     def create_cursor(self):
@@ -252,16 +253,17 @@ class MysqlDatabase(object):
             sql = MysqlSchema.sql_count % params
 
         else:
-            _logger.error('MysqlDatabase - execute: err=%s', 'Unknown database operation.')
+            self.logger.error('execute: err=%s', 'Unknown database operation.')
             # raise "Unknown database operation."
 
-        _logger.info('MysqlDatabase - execute: %s', sql)
+        self.logger.info('execute: %s', sql)
         # print sql
         try:
             self.cursor.execute(sql, args)
-            return self.cursor.fetchall()
+            return True, self.cursor.fetchall()
         except (MySQLdb.OperationalError, MySQLdb.ProgrammingError) as e:
-            _logger.error('MysqlDatabase - execute: err=%s', e)
+            self.logger.log_last_except()
+            return False, None
 
     @classmethod
     def format_string(cls, values):

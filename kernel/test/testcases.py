@@ -39,44 +39,37 @@ class DBTests(unittest.TestCase):
         time = now.strftime('%H:%M:%S')
         self.rows = [['0', True,  1, 2, 1.23, 'abc', time, date_time, "127.0.0.1", "abc"],
                      ['1', False, 3, 4, 3.14, 'def', time, date_time, "127.0.0.2", "def"]]
-        self.assertNotEqual(self.db.create_table(self.table, self.columns), None)
+        self.assertNotEqual(self.db.drop_table(self.table, callback = lambda result:self.assertNotEqual(result[0], False)), False)
+        self.assertNotEqual(self.db.create_table(self.table, self.columns, callback = lambda result:self.callback(result)), False)
         for row in self.rows:
-            self.assertNotEqual(self.db.insert(self.table, row), None)
-
-    # def insert_callback(self, result):
-    #     print result
-    #     self.assertNotEqual(result, None)
-    #
-    # def test_table_insert(self):
-    #     row = ['2', True,  1, 2, 1.23, 'abc', time, date_time, "127.0.0.1", "abc"]
-    #     self.db.insert(self.table, row, self.insert_callback)
+            self.assertNotEqual(self.db.insert(self.table, row, callback = lambda result:self.assertNotEqual(result[0], False)), False)
 
     def test_table_drop(self):
-        self.assertNotEqual(self.db.drop_table(self.table), None)
+        self.assertNotEqual(self.db.drop_table(self.table, callback = lambda result:self.assertNotEqual(result[0], False)), False)
 
     def test_table_delete(self):
         condition = ["col1", self.db.db_client.operators['exact'] % 1]
-        self.assertNotEqual(self.db.delete(self.table, condition), None)
-        self.assertNotEqual(self.db.delete(self.table), None)
+        self.assertNotEqual(self.db.delete(self.table, condition, callback = lambda result:self.assertNotEqual(result[0], False)), False)
+        self.assertNotEqual(self.db.delete(self.table, None, callback = lambda result:self.assertNotEqual(result[0], False)), False)
         self.test_table_drop()
 
     def test_table_update(self):
         expressions = ["col6", self.db.db_client.operators['exact'] % "'ghi'"]
         condition = ["col3", self.db.db_client.operators['exact'] % 1]
-        self.assertNotEqual(self.db.update(self.table, expressions, condition), None)
-        self.assertNotEqual(self.db.update(self.table, expressions), None)
+        self.assertNotEqual(self.db.update(self.table, expressions, condition, callback = lambda result:self.assertNotEqual(result[0], False)), False)
+        self.assertNotEqual(self.db.update(self.table, expressions, None, callback = lambda result:self.assertNotEqual(result[0], False)), False)
         self.test_table_drop()
 
     def test_table_find(self):
         columns = ["col1", "col2"]
         condition = ["col1", self.db.db_client.operators['exact'] % 1]
-        self.assertNotEqual(self.db.find(self.table, columns, condition), None)
+        self.assertNotEqual(self.db.find(self.table, columns, condition, callback = lambda result:self.assertNotEqual(result[0], False)), False)
         self.test_table_drop()
 
     def test_table_count(self):
         columns = ["DISTINCT", "col1"]
-        self.assertNotEqual(self.db.count(self.table, columns), None)
-        self.assertNotEqual(self.db.count(self.table), None)
+        self.assertNotEqual(self.db.count(self.table, columns, callback = lambda result:self.assertNotEqual(result[0], False)), False)
+        self.assertNotEqual(self.db.count(self.table, "*", callback = lambda result:self.assertNotEqual(result[0], False)), False)
         self.test_table_drop()
 
 
@@ -166,20 +159,20 @@ class TimerTests(unittest.TestCase):
 
     def callback(self):
         print "Timer call back."
-        Timer.stop()
 
     def test_add_timer(self):
         print "Start a timer for 0.1 second."
-        Timer.start()
-        Timer.add_timer(0.1, self.callback)
+        self.assertNotEqual(Timer.add_timer(0.1, self.callback), None)
 
     def test_wait(self):
         print "Wait 1s."
-        time.sleep(1)
+        time.sleep(0.1)
 
 
 
 
 
 if __name__ == "__main__":
+    Timer.start()
     unittest.main()
+    Timer.stop()
