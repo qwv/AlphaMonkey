@@ -14,18 +14,18 @@ from timer import Timer
 from settings import DATABASES
 
 class DataBaseService(object):
-    db_services= {}
+    services= dict()
 
     def __init__(self, db_name):
         super(DataBaseService, self).__init__()
         
     @staticmethod
-    def get_service(self, db_name):
-        if (db_services.has_key(db_name)):
-            return db_services[db_name]
+    def get_service(db_name):
+        if (DataBaseService.services.has_key(db_name)):
+            return DataBaseService.services[db_name]
         else:
             service = DatabaseProxy(DATABASES[db_name]['ENGINE'], DATABASES[db_name]['CONFIG'])
-            db_services.add(db_name, service)
+            DataBaseService.services[db_name] = service
             return service
 
 
@@ -51,19 +51,21 @@ class DatabaseProxy(object):
             self.logger.error('init: err=%s', 'Database engine not find.')
             raise "Database engine not find."
         self.request_pool = ThreadPool(10)
-        self.request_time = 0.001
-        self.timer = Timer.add_repeat_timer(self.request_time, self.request_poll)
+        self.request_time = 0.01
+        self.timer = Timer.add_repeat_timer(self.request_time, self.request_result)
 
     def __exit__(self):
         self.db_client = None
 
-    def request_poll(self):
+    def request_result(self):
+        # self.logger.info('poll request result.')
         try:
             self.request_pool.poll()
         except NoResultsPending:
             pass
 
     def execute_callback(self, request, result, opcallback):
+        self.logger.info(result)
         if result:
             try:
                 opcallback(result[0], result[1])

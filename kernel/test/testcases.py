@@ -3,15 +3,49 @@ import sys
 import datetime
 import random
 import time
+import threading
+import traceback
 
 sys.path.append("..")
 
-from middleware.db import DatabaseProxy
+from middleware.db import DataBaseService
 from middleware.settings import *
 from middleware.log import *
 from middleware.http import *
 from middleware.thread import *
 from middleware.timer import Timer
+
+def prepare_database_1():
+    db = DataBaseService.get_service('test')
+    table = 'test'
+    columns = ['col1 %s primary key' % db.db_client.data_types['UUIDField'],
+               'col2 %s' % db.db_client.data_types['BooleanField'],
+               'col3 %s' % db.db_client.data_types['IntegerField'],
+               'col4 %s' % db.db_client.data_types['SmallIntegerField'],
+               'col5 %s' % db.db_client.data_types['FloatField'],
+               'col6 %s' % db.db_client.data_types['TextField'],
+               'col7 %s' % db.db_client.data_types['TimeField'],
+               'col8 %s' % db.db_client.data_types['DateTimeField'],
+               'col9 %s' % db.db_client.data_types['IPAddressField'],
+               'col10 %s' % (db.db_client.data_types['CharField'] % {'max_length':20})]
+    db.create_table(table, columns, lambda flag, result: flag)
+
+def prepare_database_2():
+    db = DataBaseService.get_service('test')
+    table = 'test'
+    now = datetime.datetime.now()
+    date_time = now.strftime('%Y-%m-%d %H:%M:%S')
+    time = now.strftime('%H:%M:%S')
+    rows = [['0', True,  1, 2, 1.23, 'abc', time, date_time, "127.0.0.1", "abc"],
+            ['1', False, 3, 4, 3.14, 'def', time, date_time, "127.0.0.2", "def"]]
+    for row in rows:
+        db.insert(table, row, lambda flag, result: flag)
+
+def reset_database():
+    db = DataBaseService.get_service('test')
+    table = 'test'
+    db.drop_table(table, lambda flag, result: flag)
+
 
 class DBTests(unittest.TestCase):
     """
@@ -20,57 +54,33 @@ class DBTests(unittest.TestCase):
 
     def setUp(self):
         print "-- Test db --"
-
-        self.db = DatabaseProxy(DATABASES['test']['ENGINE'], DATABASES['test']['CONFIG'])
+        self.db = DataBaseService.get_service('test')
         self.assertTrue(self.db.db_client.connected, "Connect db test failure.")
         self.table = 'test'
-        self.columns = ['col1 %s primary key' % self.db.db_client.data_types['UUIDField'],
-                        'col2 %s' % self.db.db_client.data_types['BooleanField'],
-                        'col3 %s' % self.db.db_client.data_types['IntegerField'],
-                        'col4 %s' % self.db.db_client.data_types['SmallIntegerField'],
-                        'col5 %s' % self.db.db_client.data_types['FloatField'],
-                        'col6 %s' % self.db.db_client.data_types['TextField'],
-                        'col7 %s' % self.db.db_client.data_types['TimeField'],
-                        'col8 %s' % self.db.db_client.data_types['DateTimeField'],
-                        'col9 %s' % self.db.db_client.data_types['IPAddressField'],
-                        'col10 %s' % (self.db.db_client.data_types['CharField'] % {'max_length':20})]
-        now = datetime.datetime.now()
-        date_time = now.strftime('%Y-%m-%d %H:%M:%S')
-        time = now.strftime('%H:%M:%S')
-        self.rows = [['0', True,  1, 2, 1.23, 'abc', time, date_time, "127.0.0.1", "abc"],
-                     ['1', False, 3, 4, 3.14, 'def', time, date_time, "127.0.0.2", "def"]]
-        self.assertNotEqual(self.db.drop_table(self.table, callback = lambda result:self.assertNotEqual(result[0], False)), False)
-        self.assertNotEqual(self.db.create_table(self.table, self.columns, callback = lambda result:self.callback(result)), False)
-        for row in self.rows:
-            self.assertNotEqual(self.db.insert(self.table, row, callback = lambda result:self.assertNotEqual(result[0], False)), False)
 
-    def test_table_drop(self):
-        self.assertNotEqual(self.db.drop_table(self.table, callback = lambda result:self.assertNotEqual(result[0], False)), False)
+    def tearDown(self):
+        time.sleep(0.1)
 
     def test_table_delete(self):
-        condition = ["col1", self.db.db_client.operators['exact'] % 1]
-        self.assertNotEqual(self.db.delete(self.table, condition, callback = lambda result:self.assertNotEqual(result[0], False)), False)
-        self.assertNotEqual(self.db.delete(self.table, None, callback = lambda result:self.assertNotEqual(result[0], False)), False)
-        self.test_table_drop()
+        condition = ["col1", self.db.db_client.operators['exact'] % 0]
+        self.assertTrue(self.db.delete(self.table, condition, callback = lambda flag, result:self.assertTrue(flag)))
+        self.assertTrue(self.db.delete(self.table, None, callback = lambda flag, result:self.assertTrue(flag)))
 
     def test_table_update(self):
         expressions = ["col6", self.db.db_client.operators['exact'] % "'ghi'"]
         condition = ["col3", self.db.db_client.operators['exact'] % 1]
-        self.assertNotEqual(self.db.update(self.table, expressions, condition, callback = lambda result:self.assertNotEqual(result[0], False)), False)
-        self.assertNotEqual(self.db.update(self.table, expressions, None, callback = lambda result:self.assertNotEqual(result[0], False)), False)
-        self.test_table_drop()
+        self.assertTrue(self.db.update(self.table, expressions, condition, callback = lambda flag, result:self.assertTrue(flag)))
+        self.assertTrue(self.db.update(self.table, expressions, None, callback = lambda flag, result:self.assertTrue(flag)))
 
     def test_table_find(self):
         columns = ["col1", "col2"]
         condition = ["col1", self.db.db_client.operators['exact'] % 1]
-        self.assertNotEqual(self.db.find(self.table, columns, condition, callback = lambda result:self.assertNotEqual(result[0], False)), False)
-        self.test_table_drop()
+        self.assertTrue(self.db.find(self.table, columns, condition, callback = lambda flag, result:self.assertTrue(flag)))
 
     def test_table_count(self):
         columns = ["DISTINCT", "col1"]
-        self.assertNotEqual(self.db.count(self.table, columns, callback = lambda result:self.assertNotEqual(result[0], False)), False)
-        self.assertNotEqual(self.db.count(self.table, "*", callback = lambda result:self.assertNotEqual(result[0], False)), False)
-        self.test_table_drop()
+        self.assertTrue(self.db.count(self.table, columns, callback = lambda flag, result:self.assertTrue(flag)))
+        self.assertTrue(self.db.count(self.table, "*", callback = lambda flag, result:self.assertTrue(flag)))
 
 
 class LogTests(unittest.TestCase):
@@ -140,13 +150,13 @@ class HttpTests(unittest.TestCase):
         self.client.http_request(request, 10, self.callback)
 
     
-class ThreadTests(unittest.TestCase):
+class ThreadPoolTests(unittest.TestCase):
     """
     Test Thread Pool.
     """
 
     def setUp(self):
-        print "-- Test thread --"
+        print "-- Test thread pool --"
 
 
 class TimerTests(unittest.TestCase):
@@ -157,6 +167,10 @@ class TimerTests(unittest.TestCase):
     def setUp(self):
         print "-- Test timer--"
 
+    def tearDown(self):
+        print "Wait 0.1s."
+        time.sleep(0.1)
+
     def callback(self):
         print "Timer call back."
 
@@ -164,15 +178,63 @@ class TimerTests(unittest.TestCase):
         print "Start a timer for 0.1 second."
         self.assertNotEqual(Timer.add_timer(0.1, self.callback), None)
 
-    def test_wait(self):
-        print "Wait 1s."
+
+
+class TimerThread(threading.Thread):
+    def __init__(self):
+        super(TimerThread, self).__init__()
+        self.stop_flag = False
+
+    def run(self):
+        while True:
+            try:
+                Timer.loop(0.01)
+            except KeyboardInterrupt:
+                break
+            except: #ignore all exceptions
+                traceback.print_stack()
+                pass
+            if self.stop_flag:
+                break
+        Timer.close_all()
+        print "threading stop."
+
+    def stop(self):
+        self.stop_flag = True
+
+thread = TimerThread()
+
+class AAA_ThreadStartTests(unittest.TestCase):
+    """
+    Test Thread start.
+    """
+
+    def test_thread_start(self):
+        print "-- Test thread start --"
+        thread.setDaemon(True)
+        thread.start()
+        prepare_database_1()
+        time.sleep(0.1)
+        prepare_database_2()
         time.sleep(0.1)
 
 
+class ZZZ_ThreadStopTests(unittest.TestCase):
+    """
+    Test Thread stop.
+    """
+
+    def test_thread_stop(self):
+        print "-- Test thread stop --"
+        reset_database()
+        time.sleep(0.1)
+        # thread.stop()
+        # thread.join() #this will hang up main thread
 
 
 
+
+#Test order by A-Z
 if __name__ == "__main__":
-    Timer.start()
     unittest.main()
-    Timer.stop()
+

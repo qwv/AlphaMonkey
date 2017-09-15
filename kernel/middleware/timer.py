@@ -311,11 +311,11 @@ class Timer(object):
     """Wrapper for Timer. """
 
     @staticmethod
-    def start(timeout=0.1, use_poll=True, map=None, count=None):
+    def loop(timeout=0.1, use_poll=True, map=None, count=None):
         loop(timeout, use_poll, map, count)
 
     @staticmethod
-    def stop():
+    def close_all():
         close_all()
 
     @staticmethod
