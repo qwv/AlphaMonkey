@@ -58,14 +58,14 @@ class DatabaseProxy(object):
         self.db_client = None
 
     def request_result(self):
-        # self.logger.info('poll request result.')
+        # self.logger.info('request_result: poll request result.')
         try:
             self.request_pool.poll()
         except NoResultsPending:
             pass
 
     def execute_callback(self, request, result, opcallback):
-        self.logger.info(result)
+        self.logger.info('execute_callback: ' + str(result))
         if result:
             try:
                 opcallback(result[0], result[1])
