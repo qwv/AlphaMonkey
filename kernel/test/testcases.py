@@ -15,6 +15,7 @@ from middleware.http import *
 from middleware.thread import *
 from middleware.timer import Timer
 
+
 def prepare_database_1():
     db = DataBaseService.get_service('test')
     table = 'test'
@@ -75,7 +76,8 @@ class DBTests(unittest.TestCase):
     def test_table_find(self):
         columns = ["col1", "col2"]
         condition = ["col1", self.db.db_client.operators['exact'] % 1]
-        self.assertTrue(self.db.find(self.table, columns, condition, callback = lambda flag, result:self.assertTrue(flag)))
+        for _ in range(100):
+            self.assertTrue(self.db.find(self.table, columns, condition, callback = lambda flag, result:self.assertTrue(flag)))
 
     def test_table_count(self):
         columns = ["DISTINCT", "col1"]
@@ -93,33 +95,33 @@ class LogTests(unittest.TestCase):
 
     def test_stream_log(self):
         LogManager.set_log_handle(STREAM)
-	logger = LogManager.get_logger("TestStreamLog")
+        logger = LogManager.get_logger("TestStreamLog")
         self.assertNotEqual(logger, None)
-	logger.debug("debug message")  
-	logger.info("info message")  
-	logger.warning("warn message")  
-	logger.error("error message")  
-	logger.critical("critical message")  
+        logger.debug("debug message")
+        logger.info("info message")
+        logger.warning("warn message")
+        logger.error("error message")
+        logger.critical("critical message")
 
     def test_system_log(self):
         LogManager.set_log_handle(SYSLOG)
-	logger = LogManager.get_logger("TestSysLog")
+        logger = LogManager.get_logger("TestSysLog")
         self.assertNotEqual(logger, None)
-	logger.debug("debug message")  
-	logger.info("info message")  
-	logger.warning("warn message")
-	logger.error("error message")  
-	logger.critical("critical message")  
+        logger.debug("debug message")
+        logger.info("info message")
+        logger.warning("warn message")
+        logger.error("error message")
+        logger.critical("critical message")
 
     def test_file_log(self):
         LogManager.set_log_handle(FILE)
-	logger = LogManager.get_logger("TestFileLog")
+        logger = LogManager.get_logger("TestFileLog")
         self.assertNotEqual(logger, None)
-	logger.debug("debug message")  
-	logger.info("info message")  
-	logger.warning("warn message")  
-	logger.error("error message")  
-	logger.critical("critical message")  
+        logger.debug("debug message")
+        logger.info("info message")
+        logger.warning("warn message")
+        logger.error("error message")
+        logger.critical("critical message")
 
 
 class HttpTests(unittest.TestCase):
@@ -149,7 +151,7 @@ class HttpTests(unittest.TestCase):
         request = HttpRequest("111.13.101.208", "GET", "/", usessl = True)
         self.client.http_request(request, 10, self.callback)
 
-    
+
 class ThreadPoolTests(unittest.TestCase):
     """
     Test Thread Pool.
@@ -181,12 +183,16 @@ class TimerTests(unittest.TestCase):
 
 
 class TimerThread(threading.Thread):
-    def __init__(self):
-        super(TimerThread, self).__init__()
-        self.stop_flag = False
+    
+    def __init__(self, **kwds):
+        threading.Thread.__init__(self, **kwds)
+        self.setDaemon(True)
+        self._dismissed = threading.Event()
 
     def run(self):
         while True:
+            if self._dismissed.isSet():
+                break
             try:
                 Timer.loop(0.01)
             except KeyboardInterrupt:
@@ -194,13 +200,11 @@ class TimerThread(threading.Thread):
             except: #ignore all exceptions
                 traceback.print_stack()
                 pass
-            if self.stop_flag:
-                break
         Timer.close_all()
         print "threading stop."
 
-    def stop(self):
-        self.stop_flag = True
+    def dismiss(self):
+        self._dismissed.set()
 
 thread = TimerThread()
 
@@ -211,7 +215,6 @@ class AAA_ThreadStartTests(unittest.TestCase):
 
     def test_thread_start(self):
         print "-- Test thread start --"
-        thread.setDaemon(True)
         thread.start()
         prepare_database_1()
         time.sleep(0.1)
@@ -226,9 +229,10 @@ class ZZZ_ThreadStopTests(unittest.TestCase):
 
     def test_thread_stop(self):
         print "-- Test thread stop --"
-        reset_database()
         time.sleep(0.1)
-        # thread.stop()
+        reset_database()
+        time.sleep(0.5)
+        thread.dismiss()
         # thread.join() #this will hang up main thread
 
 

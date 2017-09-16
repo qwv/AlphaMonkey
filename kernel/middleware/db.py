@@ -7,6 +7,7 @@
 """
 
 import MySQLdb
+from DBUtils import PersistentDB#, PooledDB
 
 from log import LogManager
 from thread import ThreadPool, WorkRequest, NoResultsPending
@@ -190,42 +191,63 @@ class MysqlDatabase(object):
         self.passwd = self.db_config["PASSWORD"]
         self.db = self.db_config["NAME"]
         self.connected = False
-        self.connection = None
-        self.cursor = None
+        # self.connection = None
+        # self.cursor = None
 
-    def __exit__(self):
-        self.cursor = None
-        if self.connection:
-            self.connection.close()
+    # def __exit__(self):
+    #     self.cursor = None
+    #     if self.connection:
+    #         self.connection.close()
 
     def connect(self):
         try:
-            self.connection = MySQLdb.connect(host=self.host,
-                                              port=self.port,
-                                              user=self.user,
-                                              passwd=self.passwd,
-                                              db=self.db,
-                                              charset='utf8',
-                                              use_unicode=True)
-            self.cursor = self.create_cursor()
+            self.pool = PersistentDB.PersistentDB(creator=MySQLdb, maxusage=1000,
+                                                  host=self.host,
+                                                  port=self.port,
+                                                  user=self.user,
+                                                  passwd=self.passwd,
+                                                  db=self.db,
+                                                  charset='utf8',
+                                                  use_unicode=True)
+            # self.pool = PooledDB.PooledDB(creator=MySQLdb, maxcached=10,
+            #                                       host=self.host,
+            #                                       port=self.port,
+            #                                       user=self.user,
+            #                                       passwd=self.passwd,
+            #                                       db=self.db,
+            #                                       charset='utf8',
+            #                                       use_unicode=True)
+            # self.connection = self.pool.connection()
+            # self.connection = MySQLdb.connect(host=self.host,
+            #                                   port=self.port,
+            #                                   user=self.user,
+            #                                   passwd=self.passwd,
+            #                                   db=self.db,
+            #                                   charset='utf8',
+            #                                   use_unicode=True)
+            # self.cursor = self.create_cursor()
             self.connected = True
         except MySQLdb.Error as e:
             self.logger.log_last_except()
             # raise e
 
-    def create_cursor(self):
-        cursor = self.connection.cursor()
-        return MysqlCursorWrapper(cursor)
-
-    def is_usable(self):
-        try:
-            self.connection.ping()
-        except MySQLdb.Error:
-            return False
-        else:
-            return True
+    # def create_cursor(self):
+    #     # cursor = self.connection.cursor(cursorclass=MySQLdb.cursor.DictCursor)
+    #     cursor = self.connection.cursor()
+    #     return MysqlCursorWrapper(cursor)
+    #
+    # def is_usable(self):
+    #     try:
+    #         self.connection.ping()
+    #     except MySQLdb.Error:
+    #         return False
+    #     else:
+    #         return True
 
     def execute(self, op, params, args=None):
+        connection = self.pool.connection()
+        cursor = connection.cursor()
+
         sql = None
         if op == OP_CREATE_TABLE:
             sql = MysqlSchema.sql_create_table % params
@@ -261,19 +283,22 @@ class MysqlDatabase(object):
         self.logger.info('execute: %s', sql)
         # print sql
         try:
-            self.cursor.execute(sql, args)
-            return True, self.cursor.fetchall()
+            cursor.execute(sql, args)
+            return True, cursor.fetchall()
         except (MySQLdb.OperationalError, MySQLdb.ProgrammingError) as e:
             self.logger.log_last_except()
             return False, None
-
+        finally:
+            cursor.close()
+            connection.close()
+            
     @classmethod
     def format_string(cls, values):
         for i in range(0, len(values)):
             value = values[i]
             values[i] = type(value) == str and "'%s'" % value or str(value)
 
-
+'''
 class MysqlCursorWrapper(object):
     """
     A thin wrapper around MySQLdb's normal cursor class so that we can catch
@@ -315,7 +340,7 @@ class MysqlCursorWrapper(object):
 
     def __exit__(self):
         self.close()
-
+'''
 
 class BaseSchema(object):
     sql_create_table = "CREATE TABLE %(table)s (%(definition)s)"
