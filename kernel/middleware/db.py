@@ -7,7 +7,7 @@
 """
 
 import MySQLdb
-from DBUtils import PersistentDB#, PooledDB
+from DBUtils import PersistentDB
 
 from log import LogManager
 from thread import ThreadPool, WorkRequest, NoResultsPending
@@ -47,31 +47,33 @@ class DatabaseProxy(object):
         if self.engine == 'mysql':
             self.db_client = MysqlDatabase(db_config)
             self.db_client.connect()
-            self.logger.info('init: Database engine MySQLdb.')
+            self.logger.info('init: %s', 'Database engine MySQLdb.')
         else:
             self.logger.error('init: err=%s', 'Database engine not find.')
             raise "Database engine not find."
-        self.request_pool = ThreadPool(10)
+        self.thread_num = 10
+        self.request_pool = ThreadPool(self.thread_num)
         self.request_time = 0.01
         self.timer = Timer.add_repeat_timer(self.request_time, self.request_result)
 
     def __exit__(self):
+        self.request_pool.dismissWorkers(self.thread_num)
         self.db_client = None
+        self.timer.cancel()
 
     def request_result(self):
-        # self.logger.info('request_result: poll request result.')
         try:
             self.request_pool.poll()
         except NoResultsPending:
             pass
 
     def execute_callback(self, request, result, opcallback):
-        self.logger.info('execute_callback: ' + str(result))
+        self.logger.info('execute_callback: %s', str(result))
         if result:
             try:
                 opcallback(result[0], result[1])
             except:
-                self.logger.warn('send callback error.')
+                self.logger.warn('execute_callback: %s', 'Send callback error.')
                 self.logger.log_last_except()
 
     def execute(self, op, params, opcallback):
@@ -191,13 +193,7 @@ class MysqlDatabase(object):
         self.passwd = self.db_config["PASSWORD"]
         self.db = self.db_config["NAME"]
         self.connected = False
-        # self.connection = None
-        # self.cursor = None
-
-    # def __exit__(self):
-    #     self.cursor = None
-    #     if self.connection:
-    #         self.connection.close()
+        self.pool = None
 
     def connect(self):
         try:
@@ -209,45 +205,12 @@ class MysqlDatabase(object):
                                                   db=self.db,
                                                   charset='utf8',
                                                   use_unicode=True)
-            # self.pool = PooledDB.PooledDB(creator=MySQLdb, maxcached=10,
-            #                                       host=self.host,
-            #                                       port=self.port,
-            #                                       user=self.user,
-            #                                       passwd=self.passwd,
-            #                                       db=self.db,
-            #                                       charset='utf8',
-            #                                       use_unicode=True)
-            # self.connection = self.pool.connection()
-            # self.connection = MySQLdb.connect(host=self.host,
-            #                                   port=self.port,
-            #                                   user=self.user,
-            #                                   passwd=self.passwd,
-            #                                   db=self.db,
-            #                                   charset='utf8',
-            #                                   use_unicode=True)
-            # self.cursor = self.create_cursor()
             self.connected = True
-        except MySQLdb.Error as e:
+        except (MySQLdb.Error, PersistentDB.PersistentDBError) as e:
+            self.logger.error('connect: err=%s', 'Connect db failed.')
             self.logger.log_last_except()
-            # raise e
-
-    # def create_cursor(self):
-    #     # cursor = self.connection.cursor(cursorclass=MySQLdb.cursor.DictCursor)
-    #     cursor = self.connection.cursor()
-    #     return MysqlCursorWrapper(cursor)
-    #
-    # def is_usable(self):
-    #     try:
-    #         self.connection.ping()
-    #     except MySQLdb.Error:
-    #         return False
-    #     else:
-    #         return True
 
     def execute(self, op, params, args=None):
-        connection = self.pool.connection()
-        cursor = connection.cursor()
-
         sql = None
         if op == OP_CREATE_TABLE:
             sql = MysqlSchema.sql_create_table % params
@@ -277,15 +240,18 @@ class MysqlDatabase(object):
             sql = MysqlSchema.sql_count % params
 
         else:
-            self.logger.error('execute: err=%s', 'Unknown database operation.')
-            # raise "Unknown database operation."
+            self.logger.error('execute: %s err=Unknown database operation.', sql)
+            return False, None
 
         self.logger.info('execute: %s', sql)
-        # print sql
         try:
+            connection = self.pool.connection()
+            cursor = connection.cursor()
+            # args is None means no string interpolation
             cursor.execute(sql, args)
             return True, cursor.fetchall()
-        except (MySQLdb.OperationalError, MySQLdb.ProgrammingError) as e:
+        except (MySQLdb.OperationalError, MySQLdb.ProgrammingError, PersistentDB.PersistentDBError) as e:
+            # Map some error codes to IntegrityError, since they seem to be
             self.logger.log_last_except()
             return False, None
         finally:
@@ -298,49 +264,6 @@ class MysqlDatabase(object):
             value = values[i]
             values[i] = type(value) == str and "'%s'" % value or str(value)
 
-'''
-class MysqlCursorWrapper(object):
-    """
-    A thin wrapper around MySQLdb's normal cursor class so that we can catch
-    particular exception instances and reraise them with the right types.
-
-    Implemented as a wrapper, rather than a subclass, so that we aren't stuck
-    to the particular underlying representation returned by Connection.cursor().
-    """
-    def __init__(self, cursor):
-        self.cursor = cursor
-
-    def execute(self, query, args=None):
-        try:
-            # args is None means no string interpolation
-            return self.cursor.execute(query, args)
-        except MySQLdb.OperationalError as e:
-            # Map some error codes to IntegrityError, since they seem to be
-            raise e
-
-    def executemany(self, query, args):
-        try:
-            # args is None means no string interpolation
-            return self.cursor.executemany(query, args)
-        except MySQLdb.OperationalError as e:
-            # Map some error codes to IntegrityError, since they seem to be
-            raise e
-
-    def __getattr__(self, attr):
-        if attr in self.__dict__:
-            return self.__dict__[attr]
-        else:
-            return getattr(self.cursor, attr)
-
-    def __iter__(self):
-        return iter(self.cursor)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self):
-        self.close()
-'''
 
 class BaseSchema(object):
     sql_create_table = "CREATE TABLE %(table)s (%(definition)s)"

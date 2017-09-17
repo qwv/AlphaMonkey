@@ -50,11 +50,11 @@ def reset_database():
 
 class DBTests(unittest.TestCase):
     """
-    Test DBManager.
+    Test DataBase Connection.
     """
 
     def setUp(self):
-        print "-- Test db --"
+        print "-- Test database connection --"
         self.db = DataBaseService.get_service('test')
         self.assertTrue(self.db.db_client.connected, "Connect db test failure.")
         self.table = 'test'
@@ -91,7 +91,7 @@ class LogTests(unittest.TestCase):
     """
 
     def setUp(self):
-        print "-- Test log --"
+        print "-- Test log system --"
 
     def test_stream_log(self):
         LogManager.set_log_handle(STREAM)
@@ -130,7 +130,7 @@ class HttpTests(unittest.TestCase):
     """
 
     def setUp(self):
-        print "-- Test http --"
+        print "-- Test http request --"
         self.client = AsyncHTTPClient(10)
 
     def callback(self, request, reply):
@@ -163,11 +163,11 @@ class ThreadPoolTests(unittest.TestCase):
 
 class TimerTests(unittest.TestCase):
     """
-    Test timer.
+    Test Timer.
     """
 
     def setUp(self):
-        print "-- Test timer--"
+        print "-- Test timer --"
 
     def tearDown(self):
         print "Wait 0.1s."
@@ -201,7 +201,7 @@ class TimerThread(threading.Thread):
                 traceback.print_stack()
                 pass
         Timer.close_all()
-        print "threading stop."
+        print "Threading stop."
 
     def dismiss(self):
         self._dismissed.set()
@@ -210,7 +210,7 @@ thread = TimerThread()
 
 class AAA_ThreadStartTests(unittest.TestCase):
     """
-    Test Thread start.
+    Test Thread Start.
     """
 
     def test_thread_start(self):
@@ -224,7 +224,7 @@ class AAA_ThreadStartTests(unittest.TestCase):
 
 class ZZZ_ThreadStopTests(unittest.TestCase):
     """
-    Test Thread stop.
+    Test Thread Stop.
     """
 
     def test_thread_stop(self):
