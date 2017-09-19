@@ -7,20 +7,80 @@
 """
 
 import sys
+import traceback
 
 sys.path.append("../..")
 
-from middleware.db import DatabaseProxy
-from log import LogManager
+from middleware.db import DataBaseService
+from middleware.log import LogManager
+from middleware.timer import Timer
+
+import configs
+import taskparser
 
 class Collector(object):
 
     """Collect finance data manager. """
 
     def __init__(self):
-        """TODO: to be defined1. """
         super(Collector, self).__init__()
         self.logger = LogManager.get_logger("collection." + self.__class__.__name__)
+        self.db = DataBaseService.get_service(COLLECTION_DATABASE)
+        self.task_table = COLLECTION_TABLES['TASK']['NAME']
+        self.task_fields = COLLECTION_TABLES['TASK']['FIELDS']
+        self.poll_task_time = POLL_TASK_TIME
+        self.task_timer = Timer.add_repeat_timer(self.poll_task_time, self.poll_task)
+        self.stop_flag = False
+        self.logger.info('init: %s', 'Collector started.')
+
+    def run(self):
+        while True:
+            if self.stop_flag:
+                break
+            try:
+                Timer.loop(0.01)
+            except: #ignore all exceptions
+                traceback.print_stack()
+                pass
+        Timer.close_all()
+        self.logger.info('run: %s', 'Collector stopped.')
+
+    def stop(self):
+        self.stop_flag = True
         
     def poll_task(self):
+        self.db.find(self.task_table, "*", "*", callback = lambda flag, result:self.parse_task(result))
+
+    def poll_buildin_task(self):
         pass
+
+    def parse_task(self, tasks):
+        if tasks:
+            for task in tasks:
+                task_parser = None
+                task_type = task[self.task_fields.index('type')]
+                self.logger.info('parse_task: %s %s.', 'Run task type ', task_type)
+
+                if task_type == TASK_TYEP['AMERICAN_SHARE_LIST']:
+                    task_parser = ParserAmericanShareList(task)
+
+                elif task_type == TASK_TYEP['AMERICAN_SHARE_DATA_HISTORY']:
+                    task_parser = ParserAmericanShareDataHistory(task)
+
+                elif task_type == TASK_TYEP['AMERICAN_SHARE_DATA_UPDATE']:
+                    task_parser = ParserAmericanShareDataUpdate(task)
+
+                elif task_type == TASK_TYEP['STOP_BUILDIN_TASK']:
+                    task_parser = ParserStopBuildinTask(task)
+
+                elif task_type == TASK_TYEP['CLEAR_BUILDIN_TASK']:
+                    task_parser = ParserClearBuildinTask(task)
+
+                else:
+                    self.logger.warn('parse_task: %s', 'Invalid task type.')
+                    continue
+
+                task_parser.run()
+
+
+

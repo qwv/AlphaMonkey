@@ -240,7 +240,7 @@ class MysqlDatabase(object):
             sql = MysqlSchema.sql_count % params
 
         else:
-            self.logger.error('execute: %s err=Unknown database operation.', sql)
+            self.logger.error('execute: %s err=%s', sql, 'Unknown database operation.')
             return False, None
 
         self.logger.info('execute: %s', sql)

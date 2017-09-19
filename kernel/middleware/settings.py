@@ -10,8 +10,12 @@ ALLOWED_HOSTS = []
 
 # Database
 
+DB_DEFAULT = 'default'
+DB_TEST = 'test'
+DB_AMERICAN = 'american'
+
 DATABASES = {
-    'default': {
+    DB_DEFAULT: {
         'ENGINE': 'mysql',
         'CONFIG': {
             'NAME': 'alpha_monkey',
@@ -21,7 +25,7 @@ DATABASES = {
             'PORT': 3306,
         },
     },
-    'test': {
+    DB_TEST: {
         'ENGINE': 'mysql',
         'CONFIG': {
             'NAME': 'alpha_monkey_test',
@@ -31,7 +35,7 @@ DATABASES = {
             'PORT': 3306,
         },
     },
-    'american': {
+    DB_AMERICAN: {
         'ENGINE': 'mysql',
         'CONFIG': {
             'NAME': 'finance_american',

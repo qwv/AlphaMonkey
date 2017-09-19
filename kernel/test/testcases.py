@@ -17,7 +17,7 @@ from middleware.timer import Timer
 
 
 def prepare_database_1():
-    db = DataBaseService.get_service('test')
+    db = DataBaseService.get_service(DB_TEST)
     table = 'test'
     columns = ['col1 %s primary key' % db.db_client.data_types['UUIDField'],
                'col2 %s' % db.db_client.data_types['BooleanField'],
@@ -32,7 +32,7 @@ def prepare_database_1():
     db.create_table(table, columns, lambda flag, result: flag)
 
 def prepare_database_2():
-    db = DataBaseService.get_service('test')
+    db = DataBaseService.get_service(DB_TEST)
     table = 'test'
     now = datetime.datetime.now()
     date_time = now.strftime('%Y-%m-%d %H:%M:%S')
@@ -43,7 +43,7 @@ def prepare_database_2():
         db.insert(table, row, lambda flag, result: flag)
 
 def reset_database():
-    db = DataBaseService.get_service('test')
+    db = DataBaseService.get_service(DB_TEST)
     table = 'test'
     db.drop_table(table, lambda flag, result: flag)
 
@@ -55,7 +55,7 @@ class DBTests(unittest.TestCase):
 
     def setUp(self):
         print "-- Test database connection --"
-        self.db = DataBaseService.get_service('test')
+        self.db = DataBaseService.get_service(DB_TEST)
         self.assertTrue(self.db.db_client.connected, "Connect db test failure.")
         self.table = 'test'
 
