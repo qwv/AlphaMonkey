@@ -211,6 +211,8 @@ class MysqlDatabase(object):
             self.logger.log_last_except()
 
     def execute(self, op, params, args=None):
+        """This function will be run by Multi-thread."""
+
         sql = None
         if op == OP_CREATE_TABLE:
             sql = MysqlSchema.sql_create_table % params
@@ -248,10 +250,14 @@ class MysqlDatabase(object):
 
         self.logger.info('execute: %s', sql)
         try:
+            # import threading
+            # print threading.current_thread().getName()
             connection = self.pool.connection()
             cursor = connection.cursor()
             # args is None means no string interpolation
             cursor.execute(sql, args)
+            # MySQLdb autocommit is false by default, so commit here.
+            connection.commit()
             return True, cursor.fetchall()
         except (MySQLdb.OperationalError, MySQLdb.ProgrammingError, PersistentDB.PersistentDBError) as e:
             # Map some error codes to IntegrityError, since they seem to be

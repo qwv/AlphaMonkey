@@ -38,7 +38,8 @@ def prepare_database_2():
     date_time = now.strftime('%Y-%m-%d %H:%M:%S')
     time = now.strftime('%H:%M:%S')
     rows = [['0', True,  1, 2, 1.23, 'abc', time, date_time, "127.0.0.1", "abc"],
-            ['1', False, 3, 4, 3.14, 'def', time, date_time, "127.0.0.2", "def"]]
+            ['1', False, 3, 4, 3.14, 'def', time, date_time, "127.0.0.2", "def"],
+            ['2', False, 3, 4, 3.14, 'def', time, date_time, "127.0.0.2", "def"]]
     for row in rows:
         db.insert(table, row, lambda flag, result: flag)
 
@@ -63,9 +64,9 @@ class DBTests(unittest.TestCase):
         time.sleep(0.1)
 
     def test_table_delete(self):
-        condition = ["col1", self.db.db_client.operators['exact'] % 0]
+        condition = ["col1", self.db.db_client.operators['exact'] % 2]
         self.assertTrue(self.db.delete(self.table, condition, callback = lambda flag, result:self.assertTrue(flag)))
-        self.assertTrue(self.db.delete(self.table, None, callback = lambda flag, result:self.assertTrue(flag)))
+        # self.assertTrue(self.db.delete(self.table, None, callback = lambda flag, result:self.assertTrue(flag)))
 
     def test_table_update(self):
         expressions = ["col6", self.db.db_client.operators['exact'] % self.db.db_client.format_string("ghi")]
@@ -76,9 +77,10 @@ class DBTests(unittest.TestCase):
     def test_table_find(self):
         columns = ["col1", "col2"]
         condition = ["col1", self.db.db_client.operators['exact'] % 1]
+        self.assertTrue(self.db.find(self.table, columns, condition, callback = lambda flag, result:self.assertTrue(flag)))
         self.assertTrue(self.db.find(self.table, "*", None, callback = lambda flag, result:self.assertTrue(flag)))
-        for _ in range(100):
-            self.assertTrue(self.db.find(self.table, columns, condition, callback = lambda flag, result:self.assertTrue(flag)))
+        # for _ in range(100):
+        #     self.assertTrue(self.db.find(self.table, "*", None, callback = lambda flag, result:self.assertTrue(flag)))
 
     def test_table_count(self):
         columns = ["DISTINCT", "col1"]
