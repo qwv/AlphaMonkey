@@ -68,7 +68,7 @@ class DBTests(unittest.TestCase):
         self.assertTrue(self.db.delete(self.table, None, callback = lambda flag, result:self.assertTrue(flag)))
 
     def test_table_update(self):
-        expressions = ["col6", self.db.db_client.operators['exact'] % "'ghi'"]
+        expressions = ["col6", self.db.db_client.operators['exact'] % self.db.db_client.format_string("ghi")]
         condition = ["col3", self.db.db_client.operators['exact'] % 1]
         self.assertTrue(self.db.update(self.table, expressions, condition, callback = lambda flag, result:self.assertTrue(flag)))
         self.assertTrue(self.db.update(self.table, expressions, None, callback = lambda flag, result:self.assertTrue(flag)))
@@ -76,6 +76,7 @@ class DBTests(unittest.TestCase):
     def test_table_find(self):
         columns = ["col1", "col2"]
         condition = ["col1", self.db.db_client.operators['exact'] % 1]
+        self.assertTrue(self.db.find(self.table, "*", None, callback = lambda flag, result:self.assertTrue(flag)))
         for _ in range(100):
             self.assertTrue(self.db.find(self.table, columns, condition, callback = lambda flag, result:self.assertTrue(flag)))
 

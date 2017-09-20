@@ -98,7 +98,7 @@ class DatabaseProxy(object):
         return self.execute(OP_DROP_TABLE, params, callback)
 
     def insert(self, table, values, callback):
-        self.db_client.format_string(values)
+        self.db_client.format_strings(values)
         params = {
             "table": table,
             "values": ", ".join(values)
@@ -124,7 +124,7 @@ class DatabaseProxy(object):
         params = {
             "columns": ", ".join(columns),
             "table": table,
-            "condition": " ".join(condition),
+            "condition": condition and " ".join(condition) or condition,
         }
         return self.execute(OP_FIND, params, callback)
 
@@ -234,7 +234,10 @@ class MysqlDatabase(object):
                 sql = MysqlSchema.sql_update % params
 
         elif op == OP_FIND:
-            sql = MysqlSchema.sql_select % params
+            if params['condition']:
+                sql = MysqlSchema.sql_select_where% params
+            else:
+                sql = MysqlSchema.sql_select % params
 
         elif op == OP_COUNT:
             sql = MysqlSchema.sql_count % params
@@ -259,10 +262,14 @@ class MysqlDatabase(object):
             connection.close()
             
     @classmethod
-    def format_string(cls, values):
+    def format_strings(cls, values):
         for i in range(0, len(values)):
             value = values[i]
             values[i] = type(value) == str and "'%s'" % value or str(value)
+
+    @classmethod
+    def format_string(cls, value):
+            return type(value) == str and "'%s'" % value or str(value)
 
 
 class BaseSchema(object):
@@ -308,7 +315,8 @@ class BaseSchema(object):
     sql_update = "UPDATE %(table)s SET %(expressions)s"
     sql_update_where = "UPDATE %(table)s SET %(expressions)s WHERE %(condition)s"
     sql_update_where_select = "UPDATE %(table)s SET %(expressions)s WHERE %(columns) IN %(select)s"
-    sql_select = "SELECT %(columns)s FROM %(table)s WHERE %(condition)s"
+    sql_select = "SELECT %(columns)s FROM %(table)s"
+    sql_select_where = "SELECT %(columns)s FROM %(table)s WHERE %(condition)s"
     sql_count = "SELECT COUNT(%(column)s) FROM %(table)s"
 
 
