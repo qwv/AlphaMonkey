@@ -18,17 +18,21 @@ class TaskRunner(object):
 
     """Docstring for TaskRunner. """
 
-    def __init__(self):
+    def __init__(self, task):
         super(TaskRunner, self).__init__()
         self.logger = LogManager.get_logger("collection." + self.__class__.__name__)
         self.db = DataBaseService.get_service(COLLECTION_DATABASE)
+        self.task_table = COLLECTION_TABLES['TASK']
+        self.task = task
         
-    def update_task_status(self):
-        expressions = ["status", self.db.db_client.operators['exact'] % "''",
-                       "progress", self.db.db_client.operators['exact'] % "''",
-                       "begin_time", self.db.db_client.operators['exact'] %"''"]
-        condition = ["id", self.db.db_client.operators['exact'] % self.task['id']]
-        self.db.update(self.task_table, expressions, condition, callback = lambda flag, result:flag)
+    def update_task_status(self, status = None, progress = None):
+        expressions = list()
+        if status:
+            expressions.extend(["status", self.db.db_client.operators['exact'] % selt.db.db_client.format_string(status)])
+        if progress:
+            expressions.extend(["progress", self.db.db_client.operators['exact'] % self.db.db_client.format_string(progress)])
+        condition = ["id", self.db.db_client.operators['exact'] % self.task[self.task_table['FIELDS'].index('id')]]
+        self.db.update(self.task_table['NAME'], expressions, condition, callback = lambda flag, result:False)
 
     def task_finished(self):
         pass

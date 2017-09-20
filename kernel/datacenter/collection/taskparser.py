@@ -24,14 +24,12 @@ class TaskParser(object):
         super(TaskParser, self).__init__(task)
         self.logger = LogManager.get_logger("collection." + self.__class__.__name__)
         self.db = DataBaseService.get_service(COLLECTION_DATABASE)
-        self.task_table = COLLECTION_TABLES['TASK']['NAME']
-        self.task_fields = COLLECTION_TABLES['TASK']['FIELDS']
+        self.task_table = COLLECTION_TABLES['TASK']
+        self.buildin_task_table = COLLECTION_TABLES['BUILDIN_TASK']
         self.task = task
-        self.buildin_task_table = COLLECTION_TABLES['BUILDIN_TASK']['NAME']
-        self.buildin_task_fields = COLLECTION_TABLES['BUILDIN_TASK']['FIELDS']
 
     def run(self):
-        self.task_type = task[self.task_fields.index('type')]
+        self.task_type = task[self.task_table['FIELDS'].index('type')]
 
 
 class ParserAmericanShareList(TaskParser):
