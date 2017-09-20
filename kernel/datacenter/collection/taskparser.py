@@ -33,13 +33,6 @@ class TaskParser(object):
     def run(self):
         self.task_type = task[self.task_fields.index('type')]
 
-    def update_task(self):
-        expressions = ["status", self.db.db_client.operators['exact'] % "''",
-                       "progress", self.db.db_client.operators['exact'] % "''",
-                       "begin_time", self.db.db_client.operators['exact'] %"''"]
-        condition = ["id", self.db.db_client.operators['exact'] % self.task['id']]
-        self.db.update(self.task_table, expressions, condition, callback = lambda flag, result:flag)
-        
 
 class ParserAmericanShareList(TaskParser):
 

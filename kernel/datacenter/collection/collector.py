@@ -49,10 +49,7 @@ class Collector(object):
         self.stop_flag = True
         
     def poll_task(self):
-        self.db.find(self.task_table, "*", "*", callback = lambda flag, result:self.parse_task(result))
-
-    def poll_buildin_task(self):
-        pass
+        self.db.find(self.task_table, "*", None, callback = lambda flag, result:self.parse_task(result))
 
     def parse_task(self, tasks):
         if tasks:
@@ -81,6 +78,4 @@ class Collector(object):
                     continue
 
                 task_parser.run()
-
-
 

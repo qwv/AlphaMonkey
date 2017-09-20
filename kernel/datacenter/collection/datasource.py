@@ -40,5 +40,6 @@ class DataSource(object):
             self.logger.warn('select_best_source: %s', 'Source not found.')
 
     def find_fastest_source(self, sources):
+        #RTT
         return sources[0]
 
