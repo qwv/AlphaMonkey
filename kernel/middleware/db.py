@@ -15,9 +15,12 @@ from timer import Timer
 from settings import DATABASES
 
 class DataBaseService(object):
+
+    """Provide database service. """
+
     services= dict()
 
-    def __init__(self, db_name):
+    def __init__(self):
         super(DataBaseService, self).__init__()
         
     @staticmethod
