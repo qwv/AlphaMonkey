@@ -18,7 +18,7 @@ class DataBaseService(object):
 
     """Provide database service. """
 
-    services= dict()
+    services = dict()
 
     def __init__(self):
         super(DataBaseService, self).__init__()

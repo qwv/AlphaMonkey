@@ -9,6 +9,7 @@ import traceback
 sys.path.append("..")
 
 from middleware.db import DataBaseService
+from middleware.orm import OrmService
 from middleware.settings import *
 from middleware.log import *
 from middleware.http import *
@@ -86,6 +87,55 @@ class DBTests(unittest.TestCase):
         columns = ["DISTINCT", "col1"]
         self.assertTrue(self.db.count(self.table, columns, callback = lambda flag, result:self.assertTrue(flag)))
         self.assertTrue(self.db.count(self.table, "*", callback = lambda flag, result:self.assertTrue(flag)))
+
+
+class ORMTests(unittest.TestCase):
+    """
+    Test ORM Connection.
+    """
+
+    def setUp(self):
+        print "-- Test orm connection --"
+        self.orm = OrmService.get_service(DB_TEST)
+        self.assertTrue(self.orm.connected, "Connect db test failure.")
+        self.table = 'test'
+        self.model = self.orm.load_model(self.table)
+        self.session = self.orm.make_session()
+
+    def tearDown(self):
+        self.session.close()
+
+    def test_orm_add(self):
+        now = datetime.datetime.now()
+        date_time = now.strftime('%Y-%m-%d %H:%M:%S')
+        time = now.strftime('%H:%M:%S')
+        self.test = self.model(col1='3', col2=False, col3=4, col4=6, col5=1.0,
+                               col6='z', col7=time, col8=date_time,
+                               col9='192.168.0.1', col10='xyz')
+        self.session.add(self.test)
+        self.assertTrue(self.orm.commit_session(self.session))
+        self.assertIsNotNone(self.session.query(self.model).filter_by(col6='z').one())
+
+    def test_orm_count(self):
+        self.assertEqual(self.session.query(self.model).count(), 3)
+
+    def test_orm_delete(self):
+        self.assertEqual(self.session.query(self.model).filter_by(col1=1).count(), 1)
+        self.session.query(self.model).filter_by(col1=0).delete()
+        test = self.session.query(self.model).filter_by(col1=1).first()
+        self.session.delete(test)
+        self.assertEqual(self.session.query(self.model).filter_by(col1=0).count(), 0)
+        self.assertEqual(self.session.query(self.model).filter_by(col1=1).count(), 0)
+
+    def test_orm_query(self):
+        self.assertIsNotNone(self.session.query(self.model).filter_by(col6='z').first())
+
+    def test_orm_update(self):
+        test = self.session.query(self.model).filter_by(col6='z').first()
+        self.assertIsNotNone(test)
+        test.col2 = True
+        test.col3 = 5
+        self.assertTrue(self.orm.commit_session(self.session))
 
 
 class LogTests(unittest.TestCase):

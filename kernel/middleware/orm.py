@@ -6,7 +6,10 @@
 
 """
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.automap import automap_base
 
 from log import LogManager
 from settings import DATABASES
@@ -45,19 +48,45 @@ class OrmProxy(object):
         self.passwd = self.db_config["PASSWORD"]
         self.db = self.db_config["NAME"]
         self.connected = False
+        self.orm_engine = None
 
         try: 
             if self.engine == 'mysql':
                 params = (self.user, self.passwd, self.host, self.port, self.db)
                 connect = 'mysql+mysqldb://%s:%s@%s:%s/%s?charset=utf8' % params
-                self.orm_engine = create_engine(connect, echo=True)
+                self.orm_engine = create_engine(connect, max_overflow=5, 
+                                                encoding='utf-8', echo=True)
                 self.connected = True
                 self.logger.info('init: %s', 'Database engine MySQLdb.')
             else:
                 self.logger.error('init: err=%s', 'Database engine not find.')
                 raise "Database engine not find."
-        except (MySQLdb.Error, PersistentDB.PersistentDBError) as e:
+        except SQLAlchemyError:
             self.logger.error('connect: err=%s', 'Connect orm failed.')
             self.logger.log_last_except()
 
+    def make_session(self):
+        Session = sessionmaker(bind=self.orm_engine)
+        return Session()
+
+    def commit_session(self, session):
+        try:
+            session.commit()
+            return True
+        except SQLAlchemyError:
+            session.rollback()
+            self.logger.error('commit_session: err=%s', 'Commit error, rollback.')
+            self.logger.log_last_except()
+            return False
+
+    def load_model(self, table):
+        try:
+            metadata = MetaData()
+            metadata.reflect(self.orm_engine, only=[table])
+            Base = automap_base(metadata=metadata)
+            Base.prepare()
+            return Base.classes[table]
+        except SQLAlchemyError:
+            self.logger.error('load_model: err=%s', 'Load model failed.')
+            self.logger.log_last_except()
 
