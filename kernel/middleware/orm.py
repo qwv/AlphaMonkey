@@ -25,7 +25,7 @@ class OrmService(object):
 
     @staticmethod
     def get_service(db_name):
-        if (OrmService.services.has_key(db_name)):
+        if db_name in OrmService.services:
             return OrmService.services[db_name]
         else:
             service = OrmProxy(DATABASES[db_name]['ENGINE'], DATABASES[db_name]['CONFIG'])

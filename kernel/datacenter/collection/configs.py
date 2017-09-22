@@ -11,22 +11,14 @@ import middleware.settings
 COLLECTION_DATABASE = DB_DEFAULT
 
 COLLECTION_TABLES = {
-    'SOURCE': {
-        'NAME': 'collection_source', 
-        'FIELDS': ['id', 'type', 'url', 'url_field', 'data_format', 'time_interval']
-    },
-    'TASK': {
-        'NAME': 'collection_task', 
-        'FIELDS': ['id', 'sign', 'type', 'status', 'progress', 'begin_time']
-    },
-    'TASK_HISTORY': {
-        'NAME': 'collection_task_history', 
-        'FIELDS': ['id', 'sign', 'type', 'status', 'progress', 'begin_time', 'end_time']
-    },
-    'BUILDIN_TASK': {
-        'NAME': 'collection_buildin_task', 
-        'FIELDS': ['id', 'sign', 'action', 'content']
-    },
+    'SOURCE': 'collection_source', 
+    # 'FIELDS': ['id', 'type', 'url', 'url_field', 'data_format', 'time_interval']
+    'TASK': 'collection_task', 
+    # 'FIELDS': ['id', 'sign', 'type', 'status', 'progress', 'begin_time']
+    'TASK_HISTORY': 'collection_task_history', 
+    # 'FIELDS': ['id', 'sign', 'type', 'status', 'progress', 'begin_time', 'end_time']
+    'BUILDIN_TASK': 'collection_buildin_task', 
+    # 'FIELDS': ['id', 'sign', 'action', 'content']
 }
 
 POLL_TASK_TIME = 60 #Second

@@ -7,6 +7,7 @@
 """
 
 import MySQLdb
+import MySQLdb.cursors
 from DBUtils import PersistentDB
 
 from log import LogManager
@@ -25,7 +26,7 @@ class DataBaseService(object):
         
     @staticmethod
     def get_service(db_name):
-        if (DataBaseService.services.has_key(db_name)):
+        if db_name in DataBaseService.services:
             return DataBaseService.services[db_name]
         else:
             service = DatabaseProxy(DATABASES[db_name]['ENGINE'], DATABASES[db_name]['CONFIG'])
@@ -54,6 +55,10 @@ class DatabaseProxy(object):
         else:
             self.logger.error('init: err=%s', 'Database engine not find.')
             raise "Database engine not find."
+        self.connected = self.db_client.connected
+        self.data_types = self.db_client.data_types
+        self.operators = self.db_client.operators
+        self.format_string = self.db_client.format_string
         self.thread_num = 10
         self.request_pool = ThreadPool(self.thread_num)
         self.request_time = 0.01
@@ -207,7 +212,8 @@ class MysqlDatabase(object):
                                                   passwd=self.passwd,
                                                   db=self.db,
                                                   charset='utf8',
-                                                  use_unicode=True)
+                                                  use_unicode=True,
+                                                  cursorclass=MySQLdb.cursors.DictCursor)
             self.connected = True
         except (MySQLdb.Error, PersistentDB.PersistentDBError) as e:
             self.logger.error('connect: err=%s', 'Connect db failed.')

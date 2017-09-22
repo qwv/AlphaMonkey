@@ -26,14 +26,13 @@ class Collector(object):
         super(Collector, self).__init__()
         self.logger = LogManager.get_logger("collection." + self.__class__.__name__)
         self.db = DataBaseService.get_service(COLLECTION_DATABASE)
-        self.task_table = COLLECTION_TABLES['TASK']['NAME']
-        self.task_fields = COLLECTION_TABLES['TASK']['FIELDS']
+        self.task_table = COLLECTION_TABLES['TASK']
         self.poll_task_time = POLL_TASK_TIME
         self.task_timer = Timer.add_repeat_timer(self.poll_task_time, self.poll_task)
         self.stop_flag = False
-        self.logger.info('init: %s', 'Collector started.')
 
     def run(self):
+        self.logger.info('init: %s', 'Collector started.')
         while True:
             if self.stop_flag:
                 break
@@ -55,7 +54,7 @@ class Collector(object):
         if tasks:
             for task in tasks:
                 task_parser = None
-                task_type = task[self.task_fields.index('type')]
+                task_type = task['type']
                 self.logger.info('parse_task: %s %s.', 'Run task type ', task_type)
 
                 if task_type == TASK_TYEP['AMERICAN_SHARE_LIST']:

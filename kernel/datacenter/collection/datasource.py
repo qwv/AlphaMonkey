@@ -23,12 +23,12 @@ class DataSource(object):
         super(DataSource, self).__init__()
         self.logger = LogManager.get_logger("collection." + self.__class__.__name__)
         self.db = DataBaseService.get_service(COLLECTION_DATABASE)
-        self.source_table = COLLECTION_TABLES['SOURCE']['NAME']
+        self.source_table = COLLECTION_TABLES['SOURCE']
          
     def get_source(self, type, source_callback):
         self.logger.info('get_source: %s.', type)
         self.source_callback = source_callback
-        condition = ["type", self.db.db_client.operators['exact'] % type]
+        condition = ["type", self.db.operators['exact'] % type]
         self.db.find(self.task_table, "*", condition, callback = lambda flag, result:self.select_best_source(result))
 
     def select_best_source(self, sources):
