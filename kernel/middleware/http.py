@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
  http.py
- 
+
  Copyright (C) 2017-2031  YuHuan Chow <chowyuhuan@gmail.com>
- 
+
 """
 
 import sys
@@ -12,23 +12,23 @@ import functools
 import httplib
 import cStringIO
 
-from log import LogManager
-
 sys.path.append("../lib")
 
 import core
 
+from log import LogManager
+
 
 class HttpRequest(object):
     """
-        HTTPµÄÇëÇó
-        method : GET, POST, etc
-        url  : http://example.com/
-        headers dict :  {'User-Agent': ['firefox']}
-        body :  str
+        HTTP
+        method: GET, POST, etc
+        url: http://example.com/
+        headers dict: {'User-Agent': ['firefox']}
+        body: str
     """
-    def __init__(self, host, method, url,  headers = None,  usessl = False, 
-                       keyfile = None, certfile = None, port = None, body = None ):
+    def __init__(self, host, method, url, headers=None, usessl=False,
+                 keyfile=None, certfile=None, port=None, body=None):
         self.host = host
         self.port = port
         if usessl and self.port == None:
@@ -40,18 +40,18 @@ class HttpRequest(object):
         self.keyfile = keyfile
         self.certfile = certfile
         self.body = body
-    
+
     def __str__(self):
         return self.method + " " + self.host + " " + self.url
 
 class HttpReply(object):
-    def __init__(self,  header, body ):
-        super(HttpReply,self).__init__()
+    def __init__(self, header, body):
+        super(HttpReply, self).__init__()
         self.header = header
         self.body = body
 
     def __str__(self):
-        return str(self.header) 
+        return str(self.header)
 
 _logger = LogManager.get_logger("http_client")
 
@@ -66,31 +66,35 @@ class AsyncHTTPClient(object):
         self.max_clients = max_clients
         self.active = {}
         self.max_buffer_size = max_buffer_size
-        _logger.info('__init__: max_clients %d, max_buffer_size %d ', max_clients, max_buffer_size )
+        _logger.info('__init__: max_clients %d, max_buffer_size %d ',
+                     max_clients, max_buffer_size)
 
     def http_request(self, request, timeout, callback):
         self.process_request(request, timeout, callback)
         if len(self.active) > self.max_clients:
-            _logger.warn("max_clients(%s) limit reached, %d active http request." % (self.max_clients, len(self.active)))
+            _logger.warn("max_clients(%s) limit reached, %d active http request.",
+                         self.max_clients, len(self.active))
 
     def process_request(self, request, timeout, callback):
         key = object()
-        self.active[key] =  callback
+        self.active[key] = callback
         wrapper_callback = functools.partial(self.callback, key, request)
         HTTPConnection(request, timeout, wrapper_callback, self.max_buffer_size)
 
     def callback(self, key, request, err, reply):
         if self.active.has_key(key):
-            callback =  self.active[key]
+            callback = self.active[key]
             del self.active[key]
             callback(request, reply)
 
 
 class HTTPClient(core.http_client_proxy):
-    def __init__(self, host, port, method, path, headers, content, timeout, usessl, keep_alive, handler):
-        super(HTTPClient, self).__init__(host, port, method, path, headers, content, timeout, usessl, keep_alive)
+    def __init__(self, host, port, method, path, headers, content,
+                 timeout, usessl, keep_alive, handler):
+        super(HTTPClient, self).__init__(host, port, method, path, headers, content,
+                                         timeout, usessl, keep_alive)
         self.handler = handler
-    
+
     def callback(self, err, headers, content):
         if not callable(self.handler):
             return
@@ -108,10 +112,10 @@ class HTTPClient(core.http_client_proxy):
 
 
 class HTTPConnection(object):
-	
+
     HTTP_PORT = 80
     HTTPS_PORT = 443
-    
+
     def __init__(self, request, timeout, wrapper_callback, max_buffer_size):
         super(HTTPConnection, self).__init__()
         # received data
@@ -121,7 +125,9 @@ class HTTPConnection(object):
         self.set_hostport(request.host, request.port)
         self.putheaders(request.headers)
         body = request.body if request.body is not None else ""
-        self.http_client = HTTPClient(self.host, str(self.port), request.method, request.url, self.headers, body, timeout, request.usessl, False, self.callback)
+        self.http_client = HTTPClient(self.host, str(self.port), request.method,
+                                      request.url, self.headers, body, timeout,
+                                      request.usessl, False, self.callback)
         self.http_client.start()
 
     def putheaders(self, headers):
@@ -134,12 +140,12 @@ class HTTPConnection(object):
     def set_hostport(self, host, port):
         if port is None:
             i = host.rfind(':')
-            j = host.rfind(']')     # ipv6 addresses have [...]
+            j = host.rfind(']') # ipv6 addresses have [...]
             if i > j:
                 try:
                     port = int(host[i+1:])
                 except ValueError:
-                    if host[i+1:] == "":    # http://foo.com:/ == http://foo.com/
+                    if host[i+1:] == "": # http://foo.com:/ == http://foo.com/
                         port = self.default_port
                     else:
                         raise httplib.InvalidURL("nonnumeric port: '%s'" % host[i+1:])
@@ -160,7 +166,7 @@ if __name__ == '__main__':
             print reply.body
         else:
             print "failed to fetch the request", str(request)
-    
+
     from sys import argv
     script, url = argv
     strs = url.split("://")
@@ -171,6 +177,6 @@ if __name__ == '__main__':
     path = strs[1][index:]
     print usessl, host, path
     client = AsyncHTTPClient(10)
-    request = HttpRequest(host, "GET", path, usessl = usessl)
+    request = HttpRequest(host, "GET", path, usessl=usessl)
     client.http_request(request, 10, callback)
 

@@ -40,15 +40,15 @@ class Collector(object):
                 Timer.loop(0.01)
             except: #ignore all exceptions
                 traceback.print_stack()
-                pass
         Timer.close_all()
         self.logger.info('run: %s', 'Collector stopped.')
 
     def stop(self):
         self.stop_flag = True
-        
+
     def poll_task(self):
-        self.db.find(self.task_table, "*", None, callback = lambda flag, result:self.parse_task(result))
+        self.db.find(self.task_table, "*", None,
+                     callback=lambda flag, result: self.parse_task(result))
 
     def parse_task(self, tasks):
         if tasks:

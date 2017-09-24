@@ -32,20 +32,25 @@ class Task(object):
         pass
 
     def run(self):
-        self.task_type = task['type']
+        self.task_type = self.task['type']
 
     def poll_buildin_task(self):
         pass
 
-    def update_status(self, status = None, progress = None):
+    def update_status(self, status=None, progress=None):
         expressions = list()
         if status:
-            expressions.extend(["status", self.db.operators['exact'] % selt.db.format_string(status)])
+            expressions.extend([
+                "status",
+                self.db.operators['exact'] % self.db.format_string(status)])
         if progress:
-            expressions.extend(["progress", self.db.operators['exact'] % self.db.format_string(progress)])
+            expressions.extend([
+                "progress",
+                self.db.operators['exact'] % self.db.format_string(progress)])
         if len(expressions) != 0:
             condition = ["id", self.db.operators['exact'] % self.task['id']]
-            self.db.update(self.task_table, expressions, condition, callback = lambda flag, result:False)
+            self.db.update(self.task_table, expressions, condition,
+                           callback=lambda flag, result: False)
 
     def finished(self):
         pass
@@ -59,7 +64,6 @@ class TaskAmericanShareList(Task):
 
     def run(self):
         data_source = DataSource()
-        task
 
 
 class TaskAmericanShareDataHistory(Task):
@@ -104,4 +108,4 @@ class TaskClearBuildinTask(Task):
 
     def run(self):
         pass
-        
+

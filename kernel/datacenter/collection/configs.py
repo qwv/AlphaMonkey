@@ -11,13 +11,13 @@ import middleware.settings
 COLLECTION_DATABASE = DB_DEFAULT
 
 COLLECTION_TABLES = {
-    'SOURCE': 'collection_source', 
+    'SOURCE': 'collection_source',
     # 'FIELDS': ['id', 'type', 'url', 'url_field', 'data_format', 'time_interval']
-    'TASK': 'collection_task', 
+    'TASK': 'collection_task',
     # 'FIELDS': ['id', 'sign', 'type', 'status', 'progress', 'begin_time']
-    'TASK_HISTORY': 'collection_task_history', 
+    'TASK_HISTORY': 'collection_task_history',
     # 'FIELDS': ['id', 'sign', 'type', 'status', 'progress', 'begin_time', 'end_time']
-    'BUILDIN_TASK': 'collection_buildin_task', 
+    'BUILDIN_TASK': 'collection_buildin_task',
     # 'FIELDS': ['id', 'sign', 'action', 'content']
 }
 

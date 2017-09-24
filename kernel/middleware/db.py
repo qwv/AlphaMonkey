@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
  db.py
- 
+
  Copyright (C) 2017-2031  YuHuan Chow <chowyuhuan@gmail.com>
- 
+
 """
 
 import MySQLdb
@@ -23,13 +23,14 @@ class DataBaseService(object):
 
     def __init__(self):
         super(DataBaseService, self).__init__()
-        
+
     @staticmethod
     def get_service(db_name):
         if db_name in DataBaseService.services:
             return DataBaseService.services[db_name]
         else:
-            service = DatabaseProxy(DATABASES[db_name]['ENGINE'], DATABASES[db_name]['CONFIG'])
+            service = DatabaseProxy(DATABASES[db_name]['ENGINE'],
+                                    DATABASES[db_name]['CONFIG'])
             DataBaseService.services[db_name] = service
             return service
 
@@ -86,9 +87,15 @@ class DatabaseProxy(object):
 
     def execute(self, op, params, opcallback):
         if self.db_client.connected:
-            request = WorkRequest(self.db_client.execute, (op, params), callback = lambda requset, result:self.execute_callback(request, result, opcallback))
+            request = WorkRequest(
+                self.db_client.execute,
+                (op, params),
+                callback=lambda requset, result: self.execute_callback(
+                    request,
+                    result,
+                    opcallback))
             self.request_pool.putRequest(request)
-            return True 
+            return True
         else:
             return False
 
@@ -215,7 +222,7 @@ class MysqlDatabase(object):
                                                   use_unicode=True,
                                                   cursorclass=MySQLdb.cursors.DictCursor)
             self.connected = True
-        except (MySQLdb.Error, PersistentDB.PersistentDBError) as e:
+        except (MySQLdb.Error, PersistentDB.PersistentDBError):
             self.logger.error('connect: err=%s', 'Connect db failed.')
             self.logger.log_last_except()
 
@@ -268,14 +275,15 @@ class MysqlDatabase(object):
             # MySQLdb autocommit is false by default, so commit here.
             connection.commit()
             return True, cursor.fetchall()
-        except (MySQLdb.OperationalError, MySQLdb.ProgrammingError, PersistentDB.PersistentDBError) as e:
+        except (MySQLdb.OperationalError, MySQLdb.ProgrammingError,
+                PersistentDB.PersistentDBError):
             # Map some error codes to IntegrityError, since they seem to be
             self.logger.log_last_except()
             return False, None
         finally:
             cursor.close()
             connection.close()
-            
+
     @classmethod
     def format_strings(cls, values):
         for i in range(0, len(values)):
@@ -284,7 +292,7 @@ class MysqlDatabase(object):
 
     @classmethod
     def format_string(cls, value):
-            return type(value) == str and "'%s'" % value or str(value)
+        return type(value) == str and "'%s'" % value or str(value)
 
 
 class BaseSchema(object):

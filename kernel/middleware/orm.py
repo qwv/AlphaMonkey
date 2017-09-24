@@ -20,8 +20,8 @@ class OrmService(object):
 
     services = dict()
 
-    def __init__(self, db_name):
-       super(OrmService, self).__init__()
+    def __init__(self):
+        super(OrmService, self).__init__()
 
     @staticmethod
     def get_service(db_name):
@@ -31,14 +31,14 @@ class OrmService(object):
             service = OrmProxy(DATABASES[db_name]['ENGINE'], DATABASES[db_name]['CONFIG'])
             OrmService.services[db_name] = service
             return service
-    
+
 
 class OrmProxy(object):
 
     """Wrapper ORM. """
 
     def __init__(self, engine, db_config):
-        super(OrmProxy, self).__init__() 
+        super(OrmProxy, self).__init__()
         self.logger = LogManager.get_logger("orm." + self.__class__.__name__)
         self.engine = engine
         self.db_config = db_config
@@ -50,11 +50,11 @@ class OrmProxy(object):
         self.connected = False
         self.orm_engine = None
 
-        try: 
+        try:
             if self.engine == 'mysql':
                 params = (self.user, self.passwd, self.host, self.port, self.db)
                 connect = 'mysql+mysqldb://%s:%s@%s:%s/%s?charset=utf8' % params
-                self.orm_engine = create_engine(connect, max_overflow=5, 
+                self.orm_engine = create_engine(connect, max_overflow=5,
                                                 encoding='utf-8', echo=True)
                 self.connected = True
                 self.logger.info('init: %s', 'Database engine MySQLdb.')
