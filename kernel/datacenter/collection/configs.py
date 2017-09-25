@@ -8,6 +8,7 @@
 
 import middleware.settings
 
+
 COLLECTION_DATABASE = DB_DEFAULT
 
 COLLECTION_TABLES = {
@@ -37,5 +38,6 @@ TASK_STATUS = {
     'PROCESSING': 'processing',
     'INTERRUPTED': 'interrupted',
     'FINISHED': 'finished',
+    'FAILED': 'failed',
 }
 

@@ -10,50 +10,86 @@ import sys
 
 sys.path.append("../..")
 
-from middleware.db import DataBaseService
 from middleware.log import LogManager
 
+import dbbase
 import configs
 import datasource
 
-class Task(object):
+
+class Task(DbBase):
 
     """Docstring for Task. """
 
     def __init__(self, task):
         super(Task, self).__init__(task)
-        self.logger = LogManager.get_logger("collection." + self.__class__.__name__)
-        self.db = DataBaseService.get_service(COLLECTION_DATABASE)
-        self.task_table = COLLECTION_TABLES['TASK']
-        self.buildin_task_table = COLLECTION_TABLES['BUILDIN_TASK']
-        self.task = task
-
-    def parse(self):
-        pass
+        self._logger = LogManager.get_logger("collection." + self.__class__.__name__)
+        self._task = task
 
     def run(self):
-        self.task_type = self.task['type']
+        self._update_status(TASK_STATUS['PREPARING'])
+        self._data_source = DataSource()
+        self._data_source.get_source(self.task['type'], self._source_callback)
 
-    def poll_buildin_task(self):
+    def _source_callback(self, source):
+        if source:
+            self._source = source
+            self._parse()
+        else:
+            self._failed()
+            self._logger.warn('_source_callback: %s', 'Get source failed, run task failed.')
+
+    def _parse(self):
         pass
 
-    def update_status(self, status=None, progress=None):
+    def _parse_callback(self, flag):
+        if flag:
+            self._update_status(TASK_STATUS['PROCESSING'])
+            self._poll_buildin_task()
+        else:
+            self._failed()
+            self._logger.warn('_parse_callback: %s', 'Parse failed, run task failed.')
+
+    def _poll_buildin_task(self):
+        self._db.find(self._buildin_task_table, "*", None,
+                      callback=lambda flag, result: self._execute_buildin_task(flag, result))
+
+    def _execute_buildin_task(self, flag, result):
+        if flag:
+            if len(result) != 0:
+                pass
+            else:
+                self._finished()
+        else:
+            self._logger.warn('_execute_buildin_task: %s', 'Poll buildin task failed.')
+            self._poll_buildin_task()
+
+    def buildin_task_callback(self, flag):
+        if flag:
+            self._update_status(TASK_STATUS['PROCESSING'])
+        self._poll_buildin_task()
+
+    def _failed(self):
+        self._update_status(TASK_STATUS['FAILED'])
+
+    def _finished(self):
+        self._update_status(TASK_STATUS['FINISHED'])
+
+    def _update_status(self, status=None, progress=None):
         expressions = list()
         if status:
             expressions.extend([
                 "status",
-                self.db.operators['exact'] % self.db.format_string(status)])
+                self._db.operators['exact'] % self._db.format_string(status)])
         if progress:
             expressions.extend([
                 "progress",
-                self.db.operators['exact'] % self.db.format_string(progress)])
+                self._db.operators['exact'] % self._db.format_string(progress)])
         if len(expressions) != 0:
-            condition = ["id", self.db.operators['exact'] % self.task['id']]
-            self.db.update(self.task_table, expressions, condition,
-                           callback=lambda flag, result: False)
+            condition = ["id", self._db.operators['exact'] % self._task['id']]
+            self._db.update(self._task_table, expressions, condition,
+                            callback=lambda flag, result: False)
 
-    def finished(self):
-        pass
 
 class TaskAmericanShareList(Task):
 
@@ -62,8 +98,8 @@ class TaskAmericanShareList(Task):
     def __init__(self, task):
         super(TaskAmericanShareList, self).__init__(task)
 
-    def run(self):
-        data_source = DataSource()
+    def _parse(self):
+        super(TaskAmericanShareList, self)._parse()
 
 
 class TaskAmericanShareDataHistory(Task):
@@ -73,8 +109,8 @@ class TaskAmericanShareDataHistory(Task):
     def __init__(self, task):
         super(TaskAmericanShareDataHistory, self).__init__(task)
 
-    def run(self):
-        pass
+    def _parse(self):
+        super(TaskAmericanShareList, self)._parse()
 
 
 class TaskAmericanShareDataUpdate(Task):
@@ -84,8 +120,8 @@ class TaskAmericanShareDataUpdate(Task):
     def __init__(self, task):
         super(TaskAmericanShareDataUpdate, self).__init__(self, task)
 
-    def run(self):
-        pass
+    def _parse(self):
+        super(TaskAmericanShareList, self)._parse()
 
 
 class TaskStopBuildinTask(Task):
@@ -95,8 +131,8 @@ class TaskStopBuildinTask(Task):
     def __init__(self, task):
         super(TaskStopBuildinTask, self).__init__(task)
 
-    def run(self):
-        pass
+    def _parse(self):
+        super(TaskAmericanShareList, self)._parse()
 
 
 class TaskClearBuildinTask(Task):
@@ -106,6 +142,6 @@ class TaskClearBuildinTask(Task):
     def __init__(self, task):
         super(TaskClearBuildinTask, self).__init__(task)
 
-    def run(self):
-        pass
+    def _parse(self):
+        super(TaskAmericanShareList, self)._parse()
 
