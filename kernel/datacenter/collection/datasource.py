@@ -12,7 +12,7 @@ sys.path.append("../..")
 
 from middleware.log import LogManager
 
-import dbbase
+from dbbase import DbBase
 
 
 class DataSource(DbBase):

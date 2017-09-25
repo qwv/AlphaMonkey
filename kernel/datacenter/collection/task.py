@@ -12,9 +12,9 @@ sys.path.append("../..")
 
 from middleware.log import LogManager
 
-import dbbase
-import configs
-import datasource
+from configs import *
+from dbbase import DbBase
+from datasource import DataSource
 
 
 class Task(DbBase):
@@ -29,7 +29,7 @@ class Task(DbBase):
     def run(self):
         self._update_status(TASK_STATUS['PREPARING'])
         self._data_source = DataSource()
-        self._data_source.get_source(self.task['type'], self._source_callback)
+        self._data_source.get_source(self._task['type'], self._source_callback)
 
     def _source_callback(self, source):
         if source:
@@ -56,7 +56,7 @@ class Task(DbBase):
 
     def _execute_buildin_task(self, flag, result):
         if flag:
-            if len(result) != 0:
+            if result:
                 pass
             else:
                 self._finished()
@@ -85,7 +85,7 @@ class Task(DbBase):
             expressions.extend([
                 "progress",
                 self._db.operators['exact'] % self._db.format_string(progress)])
-        if len(expressions) != 0:
+        if expressions:
             condition = ["id", self._db.operators['exact'] % self._task['id']]
             self._db.update(self._task_table, expressions, condition,
                             callback=lambda flag, result: False)
@@ -110,7 +110,7 @@ class TaskAmericanShareDataHistory(Task):
         super(TaskAmericanShareDataHistory, self).__init__(task)
 
     def _parse(self):
-        super(TaskAmericanShareList, self)._parse()
+        super(TaskAmericanShareDataHistory, self)._parse()
 
 
 class TaskAmericanShareDataUpdate(Task):
@@ -121,7 +121,7 @@ class TaskAmericanShareDataUpdate(Task):
         super(TaskAmericanShareDataUpdate, self).__init__(self, task)
 
     def _parse(self):
-        super(TaskAmericanShareList, self)._parse()
+        super(TaskAmericanShareDataUpdate, self)._parse()
 
 
 class TaskStopBuildinTask(Task):
@@ -132,7 +132,7 @@ class TaskStopBuildinTask(Task):
         super(TaskStopBuildinTask, self).__init__(task)
 
     def _parse(self):
-        super(TaskAmericanShareList, self)._parse()
+        super(TaskStopBuildinTask, self)._parse()
 
 
 class TaskClearBuildinTask(Task):
@@ -143,5 +143,5 @@ class TaskClearBuildinTask(Task):
         super(TaskClearBuildinTask, self).__init__(task)
 
     def _parse(self):
-        super(TaskAmericanShareList, self)._parse()
+        super(TaskClearBuildinTask, self)._parse()
 

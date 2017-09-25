@@ -14,9 +14,9 @@ sys.path.append("../..")
 from middleware.log import LogManager
 from middleware.timer import Timer
 
-import dbbase
-import configs
-import taskparser
+from configs import *
+from dbbase import DbBase
+from task import *
 
 
 class Collector(DbBase):
@@ -29,6 +29,7 @@ class Collector(DbBase):
         self._poll_task_time = POLL_TASK_TIME
         self._task_timer = Timer.add_repeat_timer(self._poll_task_time, self._poll_task)
         self._stop_flag = False
+        self._current_task = None
 
     def run(self):
         self._logger.info('init: %s', 'Collector started.')
@@ -52,28 +53,27 @@ class Collector(DbBase):
     def _parse_task(self, tasks):
         if tasks:
             for task in tasks:
-                task_parser = None
                 task_type = task['type']
                 self._logger.info('parse_task: %s %s.', 'Run task type ', task_type)
 
                 if task_type == TASK_TYEP['AMERICAN_SHARE_LIST']:
-                    task_parser = ParserAmericanShareList(task)
+                    self._current_task = TaskAmericanShareList(task)
 
                 elif task_type == TASK_TYEP['AMERICAN_SHARE_DATA_HISTORY']:
-                    task_parser = ParserAmericanShareDataHistory(task)
+                    self._current_task = TaskAmericanShareDataHistory(task)
 
                 elif task_type == TASK_TYEP['AMERICAN_SHARE_DATA_UPDATE']:
-                    task_parser = ParserAmericanShareDataUpdate(task)
+                    self._current_task = TaskAmericanShareDataUpdate(task)
 
                 elif task_type == TASK_TYEP['STOP_BUILDIN_TASK']:
-                    task_parser = ParserStopBuildinTask(task)
+                    self._current_task = TaskStopBuildinTask(task)
 
                 elif task_type == TASK_TYEP['CLEAR_BUILDIN_TASK']:
-                    task_parser = ParserClearBuildinTask(task)
+                    self._current_task = TaskClearBuildinTask(task)
 
                 else:
-                    self.logger.warn('parse_task: %s', 'Invalid task type.')
+                    self._logger.warn('parse_task: %s', 'Invalid task type.')
                     continue
 
-                task_parser.run()
+                self._current_task.run()
 

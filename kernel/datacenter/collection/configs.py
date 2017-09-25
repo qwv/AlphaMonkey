@@ -6,7 +6,7 @@
 
 """
 
-import middleware.settings
+from middleware.settings import DB_DEFAULT
 
 
 COLLECTION_DATABASE = DB_DEFAULT

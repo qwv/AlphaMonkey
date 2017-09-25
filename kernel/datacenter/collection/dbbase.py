@@ -12,7 +12,7 @@ sys.path.append("../..")
 
 from middleware.db import DataBaseService
 
-import configs
+from configs import *
 
 
 class DbBase(object):
