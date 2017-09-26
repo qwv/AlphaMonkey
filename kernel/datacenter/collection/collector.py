@@ -13,6 +13,7 @@ sys.path.append("../..")
 
 from middleware.log import LogManager
 from middleware.timer import Timer
+from middleware.thread import ThreadPool, WorkRequest
 
 from configs import *
 from dbbase import DbBase
@@ -28,8 +29,9 @@ class Collector(DbBase):
         self._logger = LogManager.get_logger("collection." + self.__class__.__name__)
         self._poll_task_time = POLL_TASK_TIME
         self._task_timer = Timer.add_repeat_timer(self._poll_task_time, self._poll_task)
+        self._run_task_thread_num = RUN_TASK_THREAD_NUM
+        self._task_pool = ThreadPool(self._run_task_thread_num)
         self._stop_flag = False
-        self._current_task = None
 
     def run(self):
         self._logger.info('init: %s', 'Collector started.')
@@ -44,6 +46,7 @@ class Collector(DbBase):
         self._logger.info('run: %s', 'Collector stopped.')
 
     def stop(self):
+        self._task_pool.dismissWorkers(self._run_task_thread_num)
         self._stop_flag = True
 
     def _poll_task(self):
@@ -53,32 +56,53 @@ class Collector(DbBase):
     def _parse_task(self, tasks):
         if tasks:
             for task in tasks:
-                task_type = task['type']
-                self._logger.info('parse_task: %s %s.', 'Run task type ', task_type)
+                task_entity = self._create_task(task)
 
-                if task_type == TASK_TYEP['AMERICAN_SHARE_LIST']:
-                    self._current_task = TaskAmericanShareList(task)
+                if task_entity:
+                    task_status = task['status']
+                    request = None
 
-                elif task_type == TASK_TYEP['AMERICAN_SHARE_DATA_HISTORY']:
-                    self._current_task = TaskAmericanShareDataHistory(task)
+                    if task_status == TASK_STATUS['WAITING']:
+                        request = WorkRequest(
+                            task_entity.start, (task),
+                            callback=lambda requset, result: self._run_task_callback(request, result))
 
-                elif task_type == TASK_TYEP['AMERICAN_SHARE_DATA_UPDATE']:
-                    self._current_task = TaskAmericanShareDataUpdate(task)
+                    elif task_status == TASK_STATUS['PROCESSING']:
+                        request = WorkRequest(
+                            task_entity.resume, (task),
+                            callback=lambda requset, result: self._run_task_callback(request, result))
 
-                elif task_type == TASK_TYEP['STOP_BUILDIN_TASK']:
-                    self._current_task = TaskStopBuildinTask(task)
+                    else:
+                        self._logger.warn('_parse_task: %s %s.', 'Invalid task status', task_status)
+                        continue
 
-                elif task_type == TASK_TYEP['CLEAR_BUILDIN_TASK']:
-                    self._current_task = TaskClearBuildinTask(task)
+                    self._task_pool.putRequest(request)
 
-                else:
-                    self._logger.warn('parse_task: %s', 'Invalid task type.')
-                    continue
-
-                self._current_task.run()
-        else:
-            self._current_task = None
+    def _run_task_callback(self, request, result):
+        pass
 
     def _interrupt_task(self):
         pass
 
+    def _create_task(self, task):
+        task_type = task['type']
+        self._logger.info('_create_task: %s %s.', 'Create task type', task_type)
+
+        if task_type == TASK_TYEP['AMERICAN_SHARE_LIST']:
+            return TaskAmericanShareList(task)
+
+        elif task_type == TASK_TYEP['AMERICAN_SHARE_DATA_HISTORY']:
+            return TaskAmericanShareDataHistory(task)
+
+        elif task_type == TASK_TYEP['AMERICAN_SHARE_DATA_UPDATE']:
+            return TaskAmericanShareDataUpdate(task)
+
+        elif task_type == TASK_TYEP['STOP_BUILDIN_TASK']:
+            return TaskStopBuildinTask(task)
+
+        elif task_type == TASK_TYEP['CLEAR_BUILDIN_TASK']:
+            return TaskClearBuildinTask(task)
+
+        else:
+            self._logger.warn('_create_task: %s %s.', 'Invalid task type', task_type)
+            return None

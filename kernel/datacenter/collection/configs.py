@@ -24,6 +24,8 @@ COLLECTION_TABLES = {
 
 POLL_TASK_TIME = 60 #Second
 
+RUN_TASK_THREAD_NUM = 3
+
 TASK_TYEP = {
     'AMERICAN_SHARE_LIST': 'asl',#'american share list',
     'AMERICAN_SHARE_DATA_HISTORY': 'asdh',#'american share data history',

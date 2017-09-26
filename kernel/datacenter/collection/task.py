@@ -29,13 +29,13 @@ class Task(DbBase):
         self._logger.info('__init__: %s %s.', 'Init task', str(self._task))
 
     def start(self):
-        self._logger.info('start: %s %d.', 'Start task, sign', self._task['sign'])
+        self._logger.info('start: %s %d.', 'Start task sign', self._task['sign'])
         self._update_status(TASK_STATUS['PREPARING'])
         self._data_source = DataSource()
         self._data_source.get_source(self._task['type'], self._source_callback)
 
     def resume(self):
-        self._logger.info('resume: %s %d.', 'Resume task, sign', self._task['sign'])
+        self._logger.info('resume: %s %d.', 'Resume task sign', self._task['sign'])
         self._poll_buildin_task()
 
     def _source_callback(self, source):
@@ -81,11 +81,11 @@ class Task(DbBase):
 
     def _failed(self):
         self._update_status(TASK_STATUS['FAILED'])
-        self._logger.info('_failed: %s %d.', 'Run task failed, sign', self._task['sign'])
+        self._logger.info('_failed: %s %d.', 'Run task failed sign', self._task['sign'])
 
     def _finished(self):
         self._update_status(TASK_STATUS['FINISHED'])
-        self._logger.info('_finished: %s %d.', 'Run task finished, sign', self._task['sign'])
+        self._logger.info('_finished: %s %d.', 'Run task finished sign', self._task['sign'])
 
     def _update_status(self, status=None, progress=None):
         expressions = list()
