@@ -24,7 +24,7 @@ class BuildinTask(DbBase):
         self._logger = LogManager.get_logger("collection." + self.__class__.__name__)
         self._buildin_task = buildin_task
 
-    def execute(self):
+    def execute(self, callback):
         pass
 
     def _check(self):

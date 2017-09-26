@@ -76,4 +76,9 @@ class Collector(DbBase):
                     continue
 
                 self._current_task.run()
+        else:
+            self._current_task = None
+
+    def _interrupt_task(self):
+        pass
 

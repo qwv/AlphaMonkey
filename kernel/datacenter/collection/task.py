@@ -15,6 +15,7 @@ from middleware.log import LogManager
 from configs import *
 from dbbase import DbBase
 from datasource import DataSource
+from buildintask import BuildinTask
 
 
 class Task(DbBase):
@@ -25,19 +26,25 @@ class Task(DbBase):
         super(Task, self).__init__(task)
         self._logger = LogManager.get_logger("collection." + self.__class__.__name__)
         self._task = task
+        self._logger.info('__init__: %s %s.', 'Init task', str(self._task))
 
-    def run(self):
+    def start(self):
+        self._logger.info('start: %s %d.', 'Start task, sign', self._task['sign'])
         self._update_status(TASK_STATUS['PREPARING'])
         self._data_source = DataSource()
         self._data_source.get_source(self._task['type'], self._source_callback)
+
+    def resume(self):
+        self._logger.info('resume: %s %d.', 'Resume task, sign', self._task['sign'])
+        self._poll_buildin_task()
 
     def _source_callback(self, source):
         if source:
             self._source = source
             self._parse()
         else:
+            self._logger.warn('_source_callback: %s', 'Get source failed.')
             self._failed()
-            self._logger.warn('_source_callback: %s', 'Get source failed, run task failed.')
 
     def _parse(self):
         pass
@@ -47,8 +54,8 @@ class Task(DbBase):
             self._update_status(TASK_STATUS['PROCESSING'])
             self._poll_buildin_task()
         else:
+            self._logger.warn('_parse_callback: %s', 'Parse failed.')
             self._failed()
-            self._logger.warn('_parse_callback: %s', 'Parse failed, run task failed.')
 
     def _poll_buildin_task(self):
         self._db.find(self._buildin_task_table, "*", None,
@@ -57,23 +64,28 @@ class Task(DbBase):
     def _execute_buildin_task(self, flag, result):
         if flag:
             if result:
-                pass
+                buildin_task = BuildinTask(result)
+                buildin_task.execute(self._buildin_task_callback)
             else:
                 self._finished()
         else:
             self._logger.warn('_execute_buildin_task: %s', 'Poll buildin task failed.')
             self._poll_buildin_task()
 
-    def buildin_task_callback(self, flag):
+    def _buildin_task_callback(self, flag):
         if flag:
             self._update_status(TASK_STATUS['PROCESSING'])
+        else:
+            self._logger.warn('_buildin_task_callback: %s', 'Execute buildin task failed.')
         self._poll_buildin_task()
 
     def _failed(self):
         self._update_status(TASK_STATUS['FAILED'])
+        self._logger.info('_failed: %s %d.', 'Run task failed, sign', self._task['sign'])
 
     def _finished(self):
         self._update_status(TASK_STATUS['FINISHED'])
+        self._logger.info('_finished: %s %d.', 'Run task finished, sign', self._task['sign'])
 
     def _update_status(self, status=None, progress=None):
         expressions = list()
