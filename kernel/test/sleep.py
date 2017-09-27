@@ -54,7 +54,7 @@ def test_table_count():
 
 def test_callback(flag, result):
     print result
-    # test_table_count()
+    test_table_count()
 
 def start():
     print "Entering http request"
@@ -71,23 +71,14 @@ def callback(request, reply):
         print "failed to fetch the request", str(request)
 
 if __name__ == "__main__":
-    # start()
-    # print "-----------------------------------------------------"
-    # start()
-    # print "-----------------------------------------------------"
-    # start()
-    # print "-----------------------------------------------------"
-    # start()
-    # print "-----------------------------------------------------"
-    # start()
-    print "+++++++++++++++++++++++++++++++++++++++++++++++++++"
     # prepare_database_1()
     # time.sleep(0.1)
     # prepare_database_2()
     # time.sleep(0.1)
     # test_table_count()
+    # reset_database()
+    start()
+    print '1111111111111111'
     # while True:
-    # print "-----------------------------------------------------"
-    # print "-----------------------------------------------------"
-    reset_database()
-    Timer.loop(0.01)
+    #     Timer.loop(0.01, True, None, 1)
+    #     print "-----------------------------------------------------"

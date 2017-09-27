@@ -264,15 +264,15 @@ class TimerThread(threading.Thread):
             if self._dismissed.isSet():
                 break
             try:
-                Timer.loop(0.01)
+                Timer.loop(0.01, True, None, 1)
             except KeyboardInterrupt:
                 break
             except: #ignore all exceptions
                 traceback.print_stack()
+        Timer.close_all()
         print "Threading stop."
 
     def dismiss(self):
-        Timer.close_all()
         self._dismissed.set()
 
 thread = TimerThread()

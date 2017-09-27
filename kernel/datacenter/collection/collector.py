@@ -86,7 +86,7 @@ class Collector(DbBase):
             pass
         elif result == TASK_STATUS['FAILED']:
             pass
-        elif reuslt == TASK_STATUS['FINISHED']:
+        elif result == TASK_STATUS['FINISHED']:
             pass
         else:
             pass
