@@ -26,6 +26,7 @@ class Task(DbBase):
         super(Task, self).__init__(task)
         self._logger = LogManager.get_logger("collection." + self.__class__.__name__)
         self._task = task
+        self._task_status = None
         self._logger.info('__init__: %s %s.', 'Init task', str(self._task))
 
     def start(self):
@@ -33,10 +34,13 @@ class Task(DbBase):
         self._update_status(TASK_STATUS['PREPARING'])
         self._data_source = DataSource()
         self._data_source.get_source(self._task['type'], self._source_callback)
+        return self._task_status
 
     def resume(self):
         self._logger.info('resume: %s %d.', 'Resume task sign', self._task['sign'])
+        self._update_status(TASK_STATUS['PROCESSING'])
         self._poll_buildin_task()
+        return self._task_status
 
     def _source_callback(self, source):
         if source:
@@ -90,6 +94,7 @@ class Task(DbBase):
     def _update_status(self, status=None, progress=None):
         expressions = list()
         if status:
+            self._task_status = status
             expressions.extend([
                 "status",
                 self._db.operators['exact'] % self._db.format_string(status)])

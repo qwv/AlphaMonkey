@@ -42,18 +42,21 @@ class Collector(DbBase):
                 Timer.loop(0.01)
             except: #ignore all exceptions
                 traceback.print_stack()
-        Timer.close_all()
         self._logger.info('run: %s', 'Collector stopped.')
 
     def stop(self):
         self._task_pool.dismissWorkers(self._run_task_thread_num)
+        Timer.add_timer(0.5, self._stop)
+
+    def _stop(self):
+        Timer.close_all()
         self._stop_flag = True
 
     def _poll_task(self):
         self._db.find(self._task_table, "*", None,
-                      callback=lambda flag, result: self._parse_task(result))
+                      callback=lambda flag, result: self._run_task(result))
 
-    def _parse_task(self, tasks):
+    def _run_task(self, tasks):
         if tasks:
             for task in tasks:
                 task_entity = self._create_task(task)
@@ -67,7 +70,7 @@ class Collector(DbBase):
                             task_entity.start, (task),
                             callback=lambda requset, result: self._run_task_callback(request, result))
 
-                    elif task_status == TASK_STATUS['PROCESSING']:
+                    elif task_status == TASK_STATUS['INTERRUPTED']:
                         request = WorkRequest(
                             task_entity.resume, (task),
                             callback=lambda requset, result: self._run_task_callback(request, result))
@@ -79,10 +82,14 @@ class Collector(DbBase):
                     self._task_pool.putRequest(request)
 
     def _run_task_callback(self, request, result):
-        pass
-
-    def _interrupt_task(self):
-        pass
+        if result == None:
+            pass
+        elif result == TASK_STATUS['FAILED']:
+            pass
+        elif reuslt == TASK_STATUS['FINISHED']:
+            pass
+        else:
+            pass
 
     def _create_task(self, task):
         task_type = task['type']

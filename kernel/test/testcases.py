@@ -269,10 +269,10 @@ class TimerThread(threading.Thread):
                 break
             except: #ignore all exceptions
                 traceback.print_stack()
-        Timer.close_all()
         print "Threading stop."
 
     def dismiss(self):
+        Timer.close_all()
         self._dismissed.set()
 
 thread = TimerThread()
@@ -302,7 +302,7 @@ class ZZZ_ThreadStopTests(unittest.TestCase):
         reset_database()
         time.sleep(0.5)
         thread.dismiss()
-        # thread.join() #this will hang up main thread
+        thread.join() #this will hang up main thread
 
 
 
