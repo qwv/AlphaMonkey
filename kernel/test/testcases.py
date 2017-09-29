@@ -88,7 +88,8 @@ class DBTests(unittest.TestCase):
 
     def test_table_find(self):
         columns = ["col1", "col2"]
-        condition = ["col1", self.db.operators['exact'] % 1]
+        condition = ["col1", self.db.operators['exact'] % 1, "AND",
+                     "col2", self.db.operators['exact'] % False]
         self.assertTrue(self.db.find(self.table, columns, condition,
                                      callback=lambda flag, result: self.assertTrue(flag)))
         self.assertTrue(self.db.find(self.table, "*", None,

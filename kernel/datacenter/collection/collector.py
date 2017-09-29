@@ -32,7 +32,7 @@ class Collector(DbBase):
         self._current_task = None
 
     def run(self):
-        self._logger.info('init: %s', 'Collector started.')
+        self._logger.info('run: %s', 'Collector started.')
         while True:
             if self._stop_flag:
                 break
@@ -46,24 +46,34 @@ class Collector(DbBase):
         self._logger.info('run: %s', 'Collector stopped.')
 
     def stop(self):
-        self._interrupt_task()
+        if self._current_task:
+            self._current_task.interrupt(self._interrupt_task_callback)
+        else:
+            self._stop_flag = True
+
+    def _interrupt_task_callback(self, flag):
+        self._logger.info('_interrupt_task_callback: %s %s.', 'Interrupt task flag', str(flag))
         self._stop_flag = True
 
-    def _interrupt_task(self):
-        if self._current_task is not None:
-            self._current_task.interrupt()
-
     def _poll_task(self):
+        # Clear all failed or finished tasks.
+        condition = ["status", self._db.operators['exact'] % TASK_STATUS['FAILED'], "OR", 
+                     "status", self._db.operators['exact'] % TASK_STATUS['FINISHED']]
+        self._db.delete(self._task_table, condition, callback=lambda flag, result: flag)
+        # Find an waiting or interrupted task to run.
         if self._current_task is None:
-            self._db.find(self._task_table, "*", None,
+            condition = ["status", self._db.operators['exact'] % TASK_STATUS['WAITING'], "OR", 
+                         "status", self._db.operators['exact'] % TASK_STATUS['INTERRUPTED']]
+            self._db.find(self._task_table, "*", condition,
                           callback=lambda flag, result: self._run_task(result))
 
     def _run_task(self, tasks):
         if tasks:
             for task in tasks:
-                new_task = self._create_task(task['type'])
+                new_task = self._create_task(task)
                 if new_task:
                     self._current_task = new_task
+                    self._current_task.finish_callback = self._finish_task
                     task_status = task['status']
 
                     if task_status == TASK_STATUS['WAITING']:
@@ -74,7 +84,8 @@ class Collector(DbBase):
 
                     break
 
-    def _create_task(self, task_type):
+    def _create_task(self, task):
+        task_type = task['type']
         self._logger.info('_create_task: %s %s.', 'Create task type', task_type)
 
         if task_type == TASK_TYEP['AMERICAN_SHARE_LIST']:
@@ -95,3 +106,12 @@ class Collector(DbBase):
         else:
             self._logger.warn('_create_task: %s %s.', 'Invalid task type', task_type)
             return None
+
+    def _finish_task(self, task):
+        date_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # Ignore task id field.
+        task_history = task.values()[1:]
+        task_history.append(date_time)
+        self._db.insert(self._task_history_table, task_history, lambda flag, result: flag)
+        self._current_task = None
+
