@@ -51,10 +51,6 @@ class Collector(DbBase):
         else:
             self._stop_flag = True
 
-    def _interrupt_task_callback(self, flag):
-        self._logger.info('_interrupt_task_callback: %s %s.', 'Interrupt task flag', str(flag))
-        self._stop_flag = True
-
     def _poll_task(self):
         # Clear all failed or finished tasks.
         condition = ["status", self._db.operators['exact'] % TASK_STATUS['FAILED'], "OR", 
@@ -73,14 +69,13 @@ class Collector(DbBase):
                 new_task = self._create_task(task)
                 if new_task:
                     self._current_task = new_task
-                    self._current_task.finish_callback = self._finish_task
                     task_status = task['status']
 
                     if task_status == TASK_STATUS['WAITING']:
-                        self._current_task.start()
+                        self._current_task.start(self._finish_task_callback)
 
                     elif task_status == TASK_STATUS['INTERRUPTED']:
-                        self._current_task.resume()
+                        self._current_task.resume(self._finish_task_callback)
 
                     break
 
@@ -107,7 +102,12 @@ class Collector(DbBase):
             self._logger.warn('_create_task: %s %s.', 'Invalid task type', task_type)
             return None
 
-    def _finish_task(self, task):
+    def _interrupt_task_callback(self, flag):
+        self._logger.info('_interrupt_task_callback: %s %s.', 'Interrupt task flag', str(flag))
+        self._stop_flag = True
+
+    def _finish_task_callback(self, task):
+        self._logger.info('_finish_task_callback: %s %s.', 'Finish task sign', task['sign'])
         date_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         # Ignore task id field.
         task_history = task.values()[1:]
