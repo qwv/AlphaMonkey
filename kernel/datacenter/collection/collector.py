@@ -60,24 +60,21 @@ class Collector(DbBase):
         if self._current_task is None:
             condition = ["status", self._db.operators['exact'] % TASK_STATUS['WAITING'], "OR", 
                          "status", self._db.operators['exact'] % TASK_STATUS['INTERRUPTED']]
-            self._db.find(self._task_table, "*", condition,
-                          callback=lambda flag, result: self._run_task(result))
+            self._db.findone(self._task_table, "*", condition,
+                             callback=lambda flag, result: self._run_task(result))
 
-    def _run_task(self, tasks):
-        if tasks:
-            for task in tasks:
-                new_task = self._create_task(task)
-                if new_task:
-                    self._current_task = new_task
-                    task_status = task['status']
+    def _run_task(self, task):
+        if task:
+            new_task = self._create_task(task)
+            if new_task:
+                self._current_task = new_task
+                task_status = task['status']
 
-                    if task_status == TASK_STATUS['WAITING']:
-                        self._current_task.start(self._finish_task_callback)
+                if task_status == TASK_STATUS['WAITING']:
+                    self._current_task.start(self._finish_task_callback)
 
-                    elif task_status == TASK_STATUS['INTERRUPTED']:
-                        self._current_task.resume(self._finish_task_callback)
-
-                    break
+                elif task_status == TASK_STATUS['INTERRUPTED']:
+                    self._current_task.resume(self._finish_task_callback)
 
     def _create_task(self, task):
         task_type = task['type']
