@@ -76,24 +76,24 @@ class DatabaseProxy(object):
         except NoResultsPending:
             pass
 
-    def execute_callback(self, request, result, opcallback):
+    def execute_callback(self, request, result, callback):
         self.logger.info('execute_callback: %s', str(result))
         if result:
             try:
-                opcallback(result[0], result[1])
+                callback(result[0], result[1])
             except:
                 self.logger.warn('execute_callback: %s', 'Send callback error.')
                 self.logger.log_last_except()
 
-    def execute(self, op, params, opcallback):
+    def execute(self, op, params, fetchone=False, callback=None):
         if self.db_client.connected:
             request = WorkRequest(
                 self.db_client.execute,
-                (op, params),
+                (op, params, fetchone),
                 callback=lambda requset, result: self.execute_callback(
                     request,
                     result,
-                    opcallback))
+                    callback))
             self.request_pool.putRequest(request)
             return True
         else:
@@ -104,13 +104,13 @@ class DatabaseProxy(object):
             "table": table,
             "definition": ", ".join(columns)
         }
-        return self.execute(OP_CREATE_TABLE, params, callback)
+        return self.execute(OP_CREATE_TABLE, params, callback=callback)
 
     def drop_table(self, table, callback):
         params = {
             "table": table
         }
-        return self.execute(OP_DROP_TABLE, params, callback)
+        return self.execute(OP_DROP_TABLE, params, callback=callback)
 
     def insert(self, table, values, callback):
         self.db_client.format_strings(values)
@@ -118,14 +118,14 @@ class DatabaseProxy(object):
             "table": table,
             "values": ", ".join(values)
         }
-        return self.execute(OP_INSERT, params, callback)
+        return self.execute(OP_INSERT, params, callback=callback)
 
     def delete(self, table, condition, callback):
         params = {
             "table": table,
             "condition": condition and " ".join(condition) or condition,
         }
-        return self.execute(OP_DELETE, params, callback)
+        return self.execute(OP_DELETE, params, callback=callback)
 
     def update(self, table, expressions, condition, callback):
         params = {
@@ -133,7 +133,7 @@ class DatabaseProxy(object):
             "expressions": " ".join(expressions),
             "condition": condition and " ".join(condition) or condition,
         }
-        return self.execute(OP_UPDATE, params, callback)
+        return self.execute(OP_UPDATE, params, callback=callback)
 
     def find(self, table, columns, condition, callback):
         params = {
@@ -141,14 +141,22 @@ class DatabaseProxy(object):
             "table": table,
             "condition": condition and " ".join(condition) or condition,
         }
-        return self.execute(OP_FIND, params, callback)
+        return self.execute(OP_FIND, params, callback=callback)
+
+    def findone(self, table, columns, condition, callback):
+        params = {
+            "columns": ", ".join(columns),
+            "table": table,
+            "condition": condition and " ".join(condition) or condition,
+        }
+        return self.execute(OP_FIND, params, fetchone=True, callback=callback)
 
     def count(self, table, column, callback):
         params = {
             "column": " ".join(column),
             "table": table,
         }
-        return self.execute(OP_COUNT, params, callback)
+        return self.execute(OP_COUNT, params, callback=callback)
 
 
 class MysqlDatabase(object):
@@ -226,7 +234,7 @@ class MysqlDatabase(object):
             self.logger.error('connect: err=%s', 'Connect db failed.')
             self.logger.log_last_except()
 
-    def execute(self, op, params, args=None):
+    def execute(self, op, params, fetchone=False, args=None):
         """This function will be run by Multi-thread."""
 
         sql = None
@@ -274,7 +282,10 @@ class MysqlDatabase(object):
             cursor.execute(sql, args)
             # MySQLdb autocommit is false by default, so commit here.
             connection.commit()
-            return True, cursor.fetchall()
+            if fetchone:
+                return True, cursor.fetchone()
+            else:
+                return True, cursor.fetchall()
         except (MySQLdb.OperationalError, MySQLdb.ProgrammingError,
                 PersistentDB.PersistentDBError):
             # Map some error codes to IntegrityError, since they seem to be

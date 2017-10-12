@@ -94,6 +94,8 @@ class DBTests(unittest.TestCase):
                                      callback=lambda flag, result: self.assertTrue(flag)))
         self.assertTrue(self.db.find(self.table, "*", None,
                                      callback=lambda flag, result: self.assertTrue(flag)))
+        self.assertTrue(self.db.findone(self.table, "*", None,
+                                        callback=lambda flag, result: self.assertTrue(flag)))
         # for _ in range(100):
         #     self.assertTrue(self.db.find(
         #         self.table, "*", None,
